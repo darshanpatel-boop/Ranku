@@ -386,11 +386,11 @@ let toastSearchTimer;
 
 const itemFromRow = (r) => {
   const f = animeData.types[r[1]];
-  return { key: rowKey(r), title: r[0], img: r[3], fmt: f, sub: [TYPE_FR[f], r[2] || null].filter(Boolean).join(' · ') };
+  return { key: rowKey(r), title: r[0], img: r[3], fmt: f, year: r[2] || '' };
 };
 const itemFromAni = (m) => {
   const f = FORMATS[m.format] || 'TV';
-  return { key: 'a' + m.id, title: m.title.english || m.title.romaji, img: m.coverImage.large, fmt: f, sub: [TYPE_FR[f], m.seasonYear].filter(Boolean).join(' · ') };
+  return { key: 'a' + m.id, title: m.title.english || m.title.romaji, img: m.coverImage.large, fmt: f, year: m.seasonYear || '' };
 };
 const inPill = (it, k) => k === 'all' || it.fmt === k || (k === 'OVA' && it.fmt === 'ONA');
 
@@ -418,7 +418,7 @@ function srItem(it, q, n = 0) {
   return h('div', { class: 'sr-it' + (added ? ' added' : ''), dataset: { k: it.key }, style: `--n:${Math.min(n, 14)}` },
     h('div', { class: 'sr-pic' }, h('img', { src: imgUrl(it.img), alt: '', loading: 'lazy' }), h('div', { class: 'sr-ov' }, srChip(added))),
     h('b', {}, hlNodes(it.title, q)),
-    h('span', { class: 'sr-meta' }, it.sub));
+    h('span', { class: 'sr-meta' }, h('span', { class: 'sr-tag t-' + it.fmt }, TYPE_FR[it.fmt] || it.fmt), it.year ? ' ' + it.year : ''));
 }
 
 function renderSearch(animate) {

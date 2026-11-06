@@ -259,3 +259,41 @@ button:active:not(:disabled) { scale: .96; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .001ms !important; animation-delay: 0s !important; transition-duration: .001ms !important; }
 }
+
+/* ===== Touches façon Croc'Savoir : contour sombre + relief dessous, qui s'enfonce quand on appuie ===== */
+:root { --line: #0f1117; }
+.top { border-bottom: 2px solid var(--line); }
+.modal { border: 2px solid var(--line); }
+
+/* touches colorées (bleues) */
+.chip.on, button.primary, .sw-go, .add-anime .aa-b, .sw-pill.on { background: var(--accent); color: #fff; border: 2px solid var(--line); box-shadow: 0 3px 0 var(--line); }
+/* touches neutres */
+button.ghost, .sw-pill, .sw-x, .chip-edit { background: var(--panel2); color: var(--text); border: 2px solid var(--line); box-shadow: 0 3px 0 var(--line); }
+button.danger { background: #3a2328; color: #ff9a9a; border: 2px solid var(--line); box-shadow: 0 3px 0 var(--line); }
+.chip:not(.on):not(.add) { background: transparent; color: #c9cde0; }
+.chip:not(.on):not(.add):hover { background: var(--panel2); color: #fff; }
+.sw-pill.on { color: #fff; }
+.sw-pill small { opacity: .75; }
+.chip-edit { width: 34px; height: 34px; }
+
+/* appui : la touche s'enfonce */
+.chip.on:active, button.primary:active, .sw-go:active, .sw-pill:active, button.ghost:active, button.danger:active, .sw-x:active, .chip-edit:active, .add-anime:active { translate: 0 2px; scale: 1; box-shadow: 0 1px 0 var(--line); }
+.add-anime:active .aa-b { box-shadow: 0 1px 0 var(--line); }
+
+/* bouton et champs de recherche : même contour sombre épais */
+.add-anime { background: #2a2e3b; border: 2px solid var(--line); box-shadow: 0 4px 0 var(--line); }
+.add-anime:hover { background: #2f3342; border-color: var(--accent); box-shadow: 0 4px 0 var(--line), 0 0 0 4px rgba(79,140,255,.18); }
+.add-anime kbd, .sw-srch kbd { border-color: var(--line); background: #1c1f27; }
+.sw-srch { background: #1f2330; border: 2px solid var(--line); box-shadow: 0 3px 0 var(--line); }
+.sw-tools .sw-pill { box-shadow: 0 2px 0 var(--line); }
+
+/* étiquettes colorées en majuscules (comme VOCABULAIRE / INCONTOURNABLE) */
+.sr-meta { display: flex; align-items: center; gap: 6px; margin-top: 3px; color: #8f98b8; font-size: 12px; }
+.sr-tag { display: inline-block; padding: 1px 7px; border: 2px solid var(--line); border-radius: 7px; font: 800 10px/1.5 'Inter', sans-serif; letter-spacing: .05em; text-transform: uppercase; color: #14141f; background: #7fb0ff; }
+.sr-tag.t-MOVIE { background: #ff9ac2; }
+.sr-tag.t-OVA { background: #ffb83d; }
+.sr-tag.t-ONA { background: #4ade9f; }
+
+/* titres de section en petites capitales espacées (comme « DANS LA MÊME RUBRIQUE ») */
+.sw-sep, .sw-cnt { text-transform: uppercase; letter-spacing: .08em; font-weight: 800; font-size: 11px; color: #8f98b8; }
+.sw-sep { border-top-color: var(--line); }
