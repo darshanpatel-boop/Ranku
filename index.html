@@ -23,12 +23,23 @@
 
 <div id="placeBar" class="place-bar" hidden></div>
 
-<dialog id="dlgSearch" class="sheet">
-  <form method="dialog" class="sheet-head">
-    <input id="q" type="search" placeholder="Titre d'un animé…" autocomplete="off" enterkeyhint="search">
-    <button class="icon-btn" aria-label="Fermer">✕</button>
-  </form>
-  <div id="results" class="results"></div>
+<dialog id="dlgSearch" class="swin">
+  <div class="sw-head"><h2>Ajouter des animés</h2><button class="sw-x" id="srClose" type="button" aria-label="Fermer">✕</button></div>
+  <div class="sw-bar"><label class="sw-srch">
+    <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+    <input id="q" type="text" placeholder="Titre d'un animé…" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search">
+    <kbd title="Appuie sur la touche / pour ouvrir la recherche">/</kbd>
+    <button class="sw-clr" id="srClr" type="button" aria-label="Effacer">✕</button>
+  </label></div>
+  <div class="sw-tools" id="srTools"></div>
+  <div class="sw-cnt" id="srCnt"></div>
+  <div class="sw-grid" id="results"></div>
+  <div class="sw-foot">
+    <button class="sw-link" id="srAni" type="button" hidden></button>
+    <span class="sw-count" id="srCount"></span>
+    <button class="sw-go" id="srDone" type="button">Terminé</button>
+  </div>
+  <div class="sw-toast" id="srToast"></div>
 </dialog>
 
 <dialog id="dlgTier" class="modal">

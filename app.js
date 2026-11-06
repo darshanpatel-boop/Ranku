@@ -398,65 +398,186 @@ function addItem(key, title, image) {
   return true;
 }
 
-function resRow(key, title, sub, image) {
-  const added = !!cur().items[key];
-  const b = h('button', { class: 'res' + (added ? ' added' : ''), type: 'button' },
-    h('img', { src: imgUrl(image), alt: '', loading: 'lazy' }),
-    h('div', { class: 'rt' }, h('b', {}, title), h('span', {}, sub)),
-    h('div', { class: 'ck' }, added ? '✓' : '+'));
-  b.onclick = () => {
-    if (cur().items[key]) return toast('Déjà dans cette tier list');
-    addItem(key, title, image);
-    b.classList.add('added');
-    b.querySelector('.ck').textContent = '✓';
-    toast('Ajouté dans « Non classé »');
-  };
-  return b;
+// ---------- Fenêtre « Ajouter des animés » ----------
+const TYPE_FR = { TV: 'Série', MOVIE: 'Film', OVA: 'OVA', ONA: 'ONA' };
+const FORMATS = { TV: 'TV', TV_SHORT: 'TV', MOVIE: 'MOVIE', OVA: 'OVA', ONA: 'ONA' };
+const PILLS = [['all', 'Tous'], ['TV', 'Séries'], ['MOVIE', 'Films'], ['OVA', 'OVA / ONA']];
+const S = { items: [], ani: [], ids: new Set(), byKey: new Map(), type: 'all', hide: false, session: new Set(), aniState: '', undoKey: null };
+let toastSearchTimer;
+
+const itemFromRow = (r) => {
+  const f = animeData.types[r[1]];
+  return { key: rowKey(r), title: r[0], img: r[3], fmt: f, sub: [TYPE_FR[f], r[2] || null].filter(Boolean).join(' · ') };
+};
+const itemFromAni = (m) => {
+  const f = FORMATS[m.format] || 'TV';
+  return { key: 'a' + m.id, title: m.title.english || m.title.romaji, img: m.coverImage.large, fmt: f, sub: [TYPE_FR[f], m.seasonYear].filter(Boolean).join(' · ') };
+};
+const inPill = (it, k) => k === 'all' || it.fmt === k || (k === 'OVA' && it.fmt === 'ONA');
+
+// Titre avec les lettres tapées surlignées (sans accents ni majuscules).
+const fold = (s) => [...s].map((c) => c.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()).join('');
+function hlNodes(title, q) {
+  const f = fold(title), qq = fold(q.trim()), i = qq ? f.indexOf(qq) : -1;
+  if (i < 0 || f.length !== title.length) return [title];
+  return [title.slice(0, i), h('mark', {}, title.slice(i, i + qq.length)), title.slice(i + qq.length)];
 }
 
-const rowSub = (r) => [animeData.types[r[1]], r[2] || null].filter(Boolean).join(' · ');
-const FORMATS = { TV: 'TV', TV_SHORT: 'TV', MOVIE: 'MOVIE', OVA: 'OVA', ONA: 'ONA' };
+function srItem(it, q) {
+  const added = !!cur().items[it.key];
+  const chip = added
+    ? [h('i', { class: 'ic pt' }), h('span', { class: 't1' }, 'Ajouté'), h('span', { class: 't2' }, 'Retirer')]
+    : [h('i', { class: 'ic' }, '+'), h('span', {}, 'Ajouter')];
+  return h('button', { class: 'sr-it' + (added ? ' added' : ''), dataset: { k: it.key }, type: 'button' },
+    h('span', { class: 'sr-pic' }, h('img', { src: imgUrl(it.img), alt: '', loading: 'lazy' }), h('span', { class: 'sr-ov' }, h('span', { class: 'sr-chip' }, chip))),
+    h('b', {}, hlNodes(it.title, q)),
+    h('span', { class: 'sr-meta' }, it.sub));
+}
+
+function renderSearch() {
+  const dlg = $('#dlgSearch'), grid = $('#results');
+  const qv = $('#q').value, q = qv.trim(), list = cur();
+  const top = grid.scrollTop;
+  dlg.classList.toggle('has-q', !!qv);
+  const all = [...S.items, ...S.ani];
+  S.byKey = new Map(all.map((it) => [it.key, it]));
+
+  $('#srTools').replaceChildren(
+    ...PILLS.map(([k, n]) => h('button', { class: 'sw-pill' + (S.type === k ? ' on' : ''), dataset: { ty: k }, type: 'button' },
+      n, q.length >= 2 ? h('small', {}, String(all.filter((it) => inPill(it, k)).length)) : null)),
+    h('span', { class: 'sw-tog' + (S.hide ? ' on' : ''), id: 'srTog' }, h('i'), 'Masquer ceux déjà ajoutés'));
+
+  const visible = (arr) => arr.filter((it) => inPill(it, S.type) && !(S.hide && list.items[it.key] && !S.session.has(it.key)));
+  const loc = visible(S.items), ani = visible(S.ani);
+  const aniLabel = { '': 'Pas trouvé ? Chercher aussi sur AniList', loading: 'Recherche sur AniList…', done: S.ani.length ? `AniList : ${S.ani.length} résultat${S.ani.length > 1 ? 's' : ''} en plus` : 'Rien de plus sur AniList', error: 'AniList indisponible — réessayer' }[S.aniState];
+
+  if (q.length < 2) {
+    grid.replaceChildren(h('div', { class: 'sw-hint' },
+      h('div', { class: 'big' }, '🔎'), h('p', {}, 'Tape le titre d’un animé'),
+      h('small', {}, 'En français, en anglais ou en japonais : « L’Attaque des Titans » et « Shingeki no Kyojin » marchent tous les deux.')));
+    $('#srCnt').textContent = '';
+  } else if (!loc.length && !ani.length) {
+    grid.replaceChildren(h('div', { class: 'sw-hint' },
+      h('div', { class: 'big' }, '🤔'), h('p', {}, `Rien dans la base pour « ${q} ».`),
+      h('small', {}, 'Les sorties très récentes ne sont pas toujours dedans.'),
+      S.aniState === '' || S.aniState === 'error' ? h('button', { class: 'sw-go', id: 'srAni2', type: 'button' }, 'Chercher sur AniList') : null));
+    $('#srCnt').textContent = '';
+  } else {
+    grid.replaceChildren(...loc.map((it) => srItem(it, q)),
+      ani.length ? h('div', { class: 'sw-sep' }, 'Sur AniList') : null, ...ani.map((it) => srItem(it, q)));
+    $('#srCnt').textContent = `${loc.length + ani.length} résultat${loc.length + ani.length > 1 ? 's' : ''}`;
+  }
+  grid.scrollTop = top;
+
+  const link = $('#srAni');
+  link.hidden = q.length < 2;
+  link.textContent = aniLabel;
+  $('#srCount').textContent = S.session.size ? `${S.session.size} ajouté${S.session.size > 1 ? 's' : ''}` : '';
+}
 
 async function doSearch() {
   const q = $('#q').value.trim();
-  const box = $('#results');
-  if (q.length < 2) { box.replaceChildren(h('div', { class: 'note' }, 'Tape au moins 2 lettres.')); return; }
+  S.ani = []; S.aniState = '';
+  if (q.length < 2) { S.items = []; renderSearch(); return; }
   if (!animeData) {
-    box.replaceChildren(h('div', { class: 'note' }, 'Chargement de la base…'));
-    try { await loadData(); } catch { box.replaceChildren(h('div', { class: 'note' }, 'Base indisponible. Réessaie avec internet.')); return; }
+    try { await loadData(); } catch { $('#results').replaceChildren(h('div', { class: 'sw-hint' }, h('p', {}, 'Base indisponible. Réessaie avec internet.'))); return; }
   }
   const rows = searchLocal(q);
-  const kids = rows.map((r) => resRow(rowKey(r), r[0], rowSub(r), r[3]));
-  if (!rows.length) kids.push(h('div', { class: 'note' }, 'Rien dans la base.'));
-  const more = h('button', { class: 'more ghost', type: 'button' }, 'Chercher aussi sur AniList (sorties récentes)');
-  more.onclick = async () => {
-    more.disabled = true;
-    more.textContent = 'Recherche AniList…';
-    try {
-      const have = new Set(rows.flatMap((r) => [r[4] && 'a' + r[4], r[5] && 'm' + r[5]]));
-      const media = (await searchAniList(q)).filter((m) => !have.has('a' + m.id) && !(m.idMal && have.has('m' + m.idMal)));
-      more.replaceWith(...(media.length
-        ? media.map((m) => resRow('a' + m.id, m.title.english || m.title.romaji, [FORMATS[m.format] || m.format, m.seasonYear].filter(Boolean).join(' · '), m.coverImage.large))
-        : [h('div', { class: 'note' }, 'Rien de plus sur AniList.')]));
-    } catch {
-      more.disabled = false;
-      more.textContent = 'AniList indisponible, réessayer';
-    }
-  };
-  kids.push(more);
-  box.replaceChildren(...kids);
-  box.scrollTop = 0;
+  S.items = rows.map(itemFromRow);
+  S.ids = new Set(rows.flatMap((r) => [r[4] && 'a' + r[4], r[5] && 'm' + r[5]]).filter(Boolean));
+  renderSearch();
 }
 
-let debounce;
-$('#q').addEventListener('input', () => { clearTimeout(debounce); debounce = setTimeout(doSearch, 200); });
-function openSearch() {
-  $('#dlgSearch').showModal();
-  $('#q').focus();
-  if (!$('#q').value) doSearch();
-  loadData().catch(() => {});
+async function fetchAni() {
+  const q = $('#q').value.trim();
+  if (q.length < 2 || S.aniState === 'loading') return;
+  S.aniState = 'loading'; renderSearch();
+  try {
+    const media = (await searchAniList(q)).filter((m) => !S.ids.has('a' + m.id) && !(m.idMal && S.ids.has('m' + m.idMal)));
+    S.ani = media.map(itemFromAni); S.aniState = 'done';
+  } catch { S.aniState = 'error'; }
+  renderSearch();
 }
-$('#dlgSearch').addEventListener('close', render);
+
+function removeKey(key) {
+  const list = cur();
+  detach(list, key);
+  delete list.items[key];
+  S.session.delete(key);
+  save(); render();
+}
+
+function showUndo(it) {
+  const t = $('#srToast');
+  S.undoKey = it.key;
+  t.replaceChildren(h('span', {}, `« ${it.title} » ajouté dans Non classé`), h('button', { id: 'srUndo', type: 'button' }, 'Annuler'));
+  t.classList.add('show');
+  clearTimeout(toastSearchTimer);
+  toastSearchTimer = setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+function toggleItem(it) {
+  if (cur().items[it.key]) { removeKey(it.key); renderSearch(); return; }
+  addItem(it.key, it.title, it.img);
+  S.session.add(it.key);
+  renderSearch();
+  $(`.sr-it[data-k="${CSS.escape(it.key)}"]`)?.classList.add('just'); // pas de « Retirer » tant que la souris reste dessus
+  showUndo(it);
+}
+
+$('#results').addEventListener('click', (e) => {
+  if (e.target.closest('#srAni2')) { fetchAni(); return; }
+  const b = e.target.closest('.sr-it');
+  if (b && S.byKey.has(b.dataset.k)) toggleItem(S.byKey.get(b.dataset.k));
+});
+$('#results').addEventListener('mouseout', (e) => {
+  const b = e.target.closest('.sr-it');
+  if (b && !b.contains(e.relatedTarget)) b.classList.remove('just');
+});
+$('#srTools').addEventListener('click', (e) => {
+  const p = e.target.closest('[data-ty]');
+  if (p) { S.type = p.dataset.ty; renderSearch(); return; }
+  if (e.target.closest('#srTog')) { S.hide = !S.hide; renderSearch(); }
+});
+$('#srAni').onclick = fetchAni;
+$('#srToast').addEventListener('click', (e) => {
+  if (e.target.id !== 'srUndo' || !S.undoKey) return;
+  removeKey(S.undoKey); S.undoKey = null;
+  $('#srToast').classList.remove('show');
+  renderSearch();
+});
+
+let debounce;
+$('#q').addEventListener('input', () => {
+  $('#dlgSearch').classList.toggle('has-q', !!$('#q').value);
+  clearTimeout(debounce);
+  debounce = setTimeout(doSearch, 150);
+});
+$('#srClr').onclick = () => { $('#q').value = ''; $('#q').focus(); doSearch(); };
+$('#srClose').onclick = () => $('#dlgSearch').close();
+$('#srDone').onclick = () => $('#dlgSearch').close();
+$('#dlgSearch').addEventListener('click', (e) => { if (e.target === $('#dlgSearch')) $('#dlgSearch').close(); });
+
+function openSearch() {
+  const dlg = $('#dlgSearch');
+  if (!dlg.open) dlg.showModal();
+  $('#q').focus();
+  renderSearch();
+  loadData().then(() => { if ($('#q').value.trim()) doSearch(); }).catch(() => {});
+}
+// La touche « / » ouvre la recherche (ou y replace le curseur), comme sur beaucoup de sites.
+document.addEventListener('keydown', (e) => {
+  if (e.key !== '/' || e.ctrlKey || e.metaKey || e.altKey || e.target.closest('input, textarea, select')) return;
+  e.preventDefault();
+  openSearch();
+});
+$('#dlgSearch').addEventListener('close', () => {
+  $('#q').value = '';
+  Object.assign(S, { items: [], ani: [], aniState: '', undoKey: null, type: 'all' });
+  S.session.clear();
+  $('#srToast').classList.remove('show');
+  render();
+});
 
 // ---------- Démarrage ----------
 render();
