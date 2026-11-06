@@ -15,6 +15,12 @@ const h = (tag, props = {}, ...kids) => {
   for (const kid of kids.flat()) if (kid != null) el.append(kid);
   return el;
 };
+// Texte noir ou blanc selon la luminosité de la couleur du tier.
+const textOn = (hex) => {
+  const n = parseInt(hex.slice(1), 16);
+  const lum = 0.299 * (n >> 16) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255);
+  return lum > 150 ? '#14141f' : '#ffffff';
+};
 const norm = (s) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
 
 let toastTimer;
@@ -71,13 +77,12 @@ function render() {
   const board = $('#board');
   board.replaceChildren();
 
-  for (const t of list.tiers) {
-    board.append(h('div', { class: 'tier' },
-      h('button', { class: 'tier-label', style: `background:${t.color}`, dataset: { tier: t.id }, type: 'button' }, t.name),
-      h('div', { class: 'zone', dataset: { zone: t.id } }, t.items.filter((k) => list.items[k]).map((k) => card(list, k)))));
-  }
+  board.append(h('div', { class: 'tiers' }, list.tiers.map((t) =>
+    h('div', { class: 'tier' },
+      h('button', { class: 'tier-label' + (t.name.length > 3 ? ' long' : ''), style: `background:${t.color};color:${textOn(t.color)}`, dataset: { tier: t.id }, type: 'button' }, t.name),
+      h('div', { class: 'zone', dataset: { zone: t.id } }, t.items.filter((k) => list.items[k]).map((k) => card(list, k)))))));
   board.append(
-    h('div', { class: 'pool-title' }, `Non classé (${list.pool.length})`),
+    h('div', { class: 'pool-head' }, h('b', {}, 'Non classé'), h('span', {}, `${list.pool.length} animé${list.pool.length > 1 ? 's' : ''}`)),
     h('div', { class: 'pool' }, h('div', { class: 'zone', dataset: { zone: 'pool' } }, list.pool.filter((k) => list.items[k]).map((k) => card(list, k)))));
 
   board.querySelectorAll('.zone').forEach((z) => {
@@ -116,7 +121,7 @@ function updatePlaceBar() {
   bar.replaceChildren(
     h('div', { class: 'pt' }, 'Placer « ' + list.items[sel].t + ' » dans :'),
     h('div', { class: 'btns' },
-      list.tiers.map((t) => h('button', { style: `background:${t.color}`, onclick: () => place(t.id), type: 'button' }, t.name)),
+      list.tiers.map((t) => h('button', { style: `background:${t.color};color:${textOn(t.color)}`, onclick: () => place(t.id), type: 'button' }, t.name)),
       h('button', { class: 'plain', onclick: () => place('pool'), type: 'button' }, 'Non classé'),
       h('button', { class: 'rm', onclick: removeSel, type: 'button' }, 'Retirer'),
       h('button', { class: 'plain', onclick: () => { sel = null; render(); }, type: 'button' }, 'Annuler')));
@@ -213,12 +218,6 @@ $('#dlgMenu').addEventListener('click', (e) => {
       db.lists = db.lists.filter((l) => l.id !== db.cur);
       db.cur = db.lists[0].id; sel = null; save(); render(); dlg.close();
     }
-  } else if (act === 'export') {
-    const a = h('a', { href: URL.createObjectURL(new Blob([JSON.stringify(db)], { type: 'application/json' })), download: 'tierlists-anime.json' });
-    a.click();
-    URL.revokeObjectURL(a.href);
-  } else if (act === 'import') {
-    $('#fileImport').click();
   } else if (act === 'about') {
     dlg.close();
     $('#aboutDate').textContent = animeData ? `Base mise à jour le ${animeData.lastUpdate}.` : '';
@@ -226,21 +225,6 @@ $('#dlgMenu').addEventListener('click', (e) => {
     loadData();
   }
 });
-
-$('#fileImport').onchange = async (e) => {
-  const f = e.target.files[0];
-  e.target.value = '';
-  if (!f) return;
-  try {
-    const inc = JSON.parse(await f.text());
-    const lists = (inc.lists || []).filter((l) => l && Array.isArray(l.tiers) && Array.isArray(l.pool) && l.items);
-    if (!lists.length) throw new Error();
-    lists.forEach((l) => { l.id = uid(); db.lists.push(l); });
-    db.cur = lists[0].id; sel = null; save(); render();
-    $('#dlgMenu').close();
-    toast(`${lists.length} tier list(s) importée(s)`);
-  } catch { toast('Fichier invalide'); }
-};
 
 // ---------- Recherche : base locale + AniList en complément ----------
 let animeData = null;
