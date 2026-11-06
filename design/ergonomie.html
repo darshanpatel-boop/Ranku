@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Ergonomie : propositions</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800&family=Inter:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root { --bg: #23262f; --bg2: #1b1e27; --panel: #2a2e3b; --panel2: #343949; --line: #12141b; --text: #eef0f7; --muted: #8f98b8; --accent: #4f8cff; }
+* { box-sizing: border-box; margin: 0; }
+body { background: #15171d; color: var(--text); font: 500 14px Inter, sans-serif; padding: 18px 16px 70px; }
+h1 { font: 800 28px 'Baloo 2'; } h2 { font: 800 20px 'Baloo 2'; margin: 38px 0 4px; } .sub { color: var(--muted); max-width: 760px; margin: 4px 0 6px; line-height: 1.45; }
+ul.pb { color: #b4bbd6; margin: 8px 0 14px 18px; line-height: 1.5; max-width: 800px; }
+.frame { border: 2px solid var(--line); border-radius: 14px; overflow: hidden; background: var(--bg); box-shadow: 0 6px 0 var(--line); }
+.row2 { display: flex; gap: 22px; align-items: flex-start; flex-wrap: wrap; }
+button { font: inherit; color: inherit; border: 0; cursor: pointer; }
+.logo { font: 800 24px 'Baloo 2'; color: #ff6b6b; } .logo b { color: var(--accent); }
+.mark { width: 30px; height: 30px; border-radius: 9px; background: #1b1e27; border: 2px solid var(--line); display: inline-flex; flex-direction: column; justify-content: center; gap: 3px; padding: 0 5px; vertical-align: middle; margin-right: 8px; }
+.mark i { height: 3px; border-radius: 2px; } .mark i:nth-child(1) { background: #ff6b6b; } .mark i:nth-child(2) { background: #ffd24d; width: 80%; } .mark i:nth-child(3) { background: #4f8cff; width: 60%; }
+.btn { display: inline-flex; align-items: center; gap: 7px; padding: 9px 14px; border-radius: 12px; background: var(--panel2); border: 2px solid var(--line); box-shadow: 0 3px 0 var(--line); font-weight: 700; font-size: 13px; white-space: nowrap; }
+.btn.p { background: var(--accent); color: #fff; } .btn svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+.tier { display: flex; border-top: 1px solid #12141b; min-height: 92px; } .tier:first-child { border-top: 0; }
+.tier .l { width: 86px; display: flex; flex-direction: column; align-items: center; justify-content: center; font: 800 38px 'Baloo 2'; }
+.tier .l small { font: 600 11px Inter; color: var(--muted); }
+.tier .c { flex: 1; display: flex; gap: 8px; padding: 8px; align-items: center; }
+.pic { width: 54px; height: 80px; border-radius: 8px; border: 2px solid #0e1016; background-size: cover; flex: none; }
+.cork { margin: 14px; border-radius: 14px; background: #7a5a3b; padding: 12px; min-height: 100px; display: flex; gap: 8px; align-items: center; }
+.tiers { margin: 14px; border: 2px solid var(--line); border-radius: 14px; overflow: hidden; background: var(--bg2); }
+
+/* A : barre latérale */
+.A { display: flex; height: 620px; }
+.A .side { width: 220px; background: var(--bg2); border-right: 2px solid var(--line); padding: 14px 12px; display: flex; flex-direction: column; gap: 4px; }
+.A .side .logo { padding: 2px 6px 14px; }
+.A .nav { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; color: #c9cde0; font-weight: 700; background: transparent; text-align: left; }
+.A .nav svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+.A .nav.on { background: var(--accent); color: #fff; box-shadow: 0 3px 0 var(--line); }
+.A .grp { margin: 14px 6px 4px; font: 800 11px Inter; letter-spacing: .08em; color: var(--muted); text-transform: uppercase; }
+.A .sub-i { padding: 7px 12px 7px 40px; border-radius: 10px; color: #aab1cf; font-weight: 600; font-size: 13px; text-align: left; background: transparent; }
+.A .sub-i.on { background: var(--panel); color: #fff; }
+.A .new { margin: 8px 6px; padding: 8px 12px; border: 2px dashed #3d4560; border-radius: 12px; color: var(--muted); background: transparent; font-weight: 700; font-size: 13px; }
+.A .main { flex: 1; overflow: hidden; }
+.A .head { display: flex; align-items: center; gap: 10px; padding: 14px 18px; border-bottom: 2px solid var(--line); }
+.A .head h3 { font: 800 22px 'Baloo 2'; margin-right: auto; }
+
+/* B : barre du haut + fil d'Ariane + outils groupés */
+.B .top { display: flex; align-items: center; gap: 18px; padding: 10px 18px; background: var(--bg2); border-bottom: 2px solid var(--line); }
+.B .tabs { display: flex; gap: 4px; margin-left: 10px; }
+.B .tab { padding: 8px 16px; border-radius: 10px; font-weight: 700; color: #c9cde0; background: transparent; }
+.B .tab.on { background: var(--accent); color: #fff; box-shadow: 0 3px 0 var(--line); }
+.B .crumb { padding: 10px 18px 0; color: var(--muted); font-weight: 600; font-size: 13px; } .B .crumb b { color: #fff; } .B .crumb i { font-style: normal; margin: 0 6px; opacity: .6; }
+.B .title { display: flex; align-items: center; gap: 10px; padding: 6px 18px 10px; } .B .title h3 { font: 800 26px 'Baloo 2'; margin-right: auto; }
+.B .tools { display: flex; flex-wrap: wrap; gap: 8px; padding: 0 18px 4px; align-items: center; } .B .tools .sp { flex: 1; }
+.B .inner { max-width: 960px; margin: 0 auto; }
+
+/* C : mobile, barre du bas */
+.C { width: 390px; height: 700px; display: flex; flex-direction: column; position: relative; }
+.C .bar { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: var(--bg2); border-bottom: 2px solid var(--line); }
+.C .bar h3 { font: 800 19px 'Baloo 2'; flex: 1; }
+.C .ic { width: 38px; height: 38px; border-radius: 50%; background: var(--panel2); border: 2px solid var(--line); display: flex; align-items: center; justify-content: center; } .C .ic svg { width: 18px; height: 18px; stroke: #fff; fill: none; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
+.C .body { flex: 1; overflow: hidden; } .C .tiers { margin: 10px; } .C .tier .l { width: 56px; font-size: 28px; } .C .tier { min-height: 80px; } .C .pic { width: 46px; height: 68px; }
+.C .bottom { display: flex; background: var(--bg2); border-top: 2px solid var(--line); padding: 6px 6px 10px; }
+.C .bottom button { flex: 1; background: transparent; display: flex; flex-direction: column; align-items: center; gap: 3px; font: 700 11px Inter; color: #8f98b8; padding: 6px 0; border-radius: 12px; } .C .bottom svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+.C .bottom .on { color: #fff; background: rgba(79,140,255,.25); }
+.C .fab { position: absolute; right: 14px; bottom: 82px; width: 54px; height: 54px; border-radius: 50%; background: var(--accent); border: 2px solid var(--line); box-shadow: 0 4px 0 var(--line); display: flex; align-items: center; justify-content: center; } .C .fab svg { width: 26px; height: 26px; stroke: #fff; fill: none; stroke-width: 3.2; stroke-linecap: round; }
+</style></head><body>
+<h1>Ergonomie : propositions</h1>
+<div class="sub">Ce que je constate dans l’appli actuelle : la barre du haut change de contenu à chaque écran (le logo bouge) ; les boutons d’action sont éparpillés (curseur et case à gauche, Partager à droite, recherche au milieu, import, tri rapide, tri et filtre plus bas) ; le contenu s’étale sur toute la largeur de l’écran du PC ; on ne voit jamais où on est ni comment aller ailleurs en un clic. La DA reste exactement la même dans les trois propositions.</div>
+
+<h2>A · Barre latérale (PC)</h2>
+<div class="sub">Un menu fixe à gauche : Accueil, Tier lists, Tops, avec tes listes dessous. Tu vois toujours où tu es et tu changes de liste en un clic. À droite, un titre et une barre d’actions unique, toujours au même endroit.</div>
+<ul class="pb"><li>+ navigation permanente, plus de flèche retour ni de maison</li><li>+ passer d’une tier list à l’autre ou à un top : 1 clic, depuis n’importe où</li><li>− prend 220 px de largeur (sur téléphone, elle devient la barre du bas de C)</li></ul>
+<div class="frame A">
+  <div class="side">
+    <div class="logo"><span class="mark"><i></i><i></i><i></i></span>Ran<b>ku</b></div>
+    <button class="nav"><svg viewBox="0 0 24 24"><path d="M4 11l8-7 8 7M6 10v10h4v-6h4v6h4V10"/></svg>Accueil</button>
+    <button class="nav on"><svg viewBox="0 0 24 24"><path d="M4 6h8M4 12h12M4 18h16"/></svg>Tier lists</button>
+    <button class="sub-i on">Mes animés</button><button class="sub-i">Persos préférés</button><button class="new">＋ Nouvelle tier list</button>
+    <button class="nav"><svg viewBox="0 0 24 24"><path d="M8 4h8v5a4 4 0 0 1-8 0V4zM12 13v4M8 21h8M10 17h4"/></svg>Tops</button>
+    <button class="sub-i">Mon top 10</button>
+    <div style="flex:1"></div><button class="sub-i" style="padding-left:12px">À propos</button>
+  </div>
+  <div class="main">
+    <div class="head"><h3>Mes animés</h3><button class="btn p"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Ajouter</button><button class="btn">Importer</button><button class="btn">Tri rapide</button><button class="btn">Partager</button><button class="btn">⋯</button></div>
+    <div class="tiers" id="aT"></div><div class="cork" id="aC"></div>
+  </div>
+</div>
+
+<h2>B · Barre du haut claire + fil d’Ariane (PC)</h2>
+<div class="sub">On garde la barre du haut mais elle ne change plus : logo, trois onglets fixes (Accueil / Tier lists / Tops). Dessous, un fil d’Ariane (« Tier lists › Mes animés ») et UNE rangée d’outils étiquetés. Le contenu est centré, pas étiré.</div>
+<ul class="pb"><li>+ proche de ce que tu as déjà, changement léger</li><li>+ le fil d’Ariane remplace flèche et maison : on revient à n’importe quel niveau</li><li>− changer de liste demande de repasser par la page des listes (ou un petit menu sur le titre)</li></ul>
+<div class="frame B"><div class="inner" style="max-width:none">
+  <div class="top"><div class="logo"><span class="mark"><i></i><i></i><i></i></span>Ran<b>ku</b></div><div class="tabs"><button class="tab">Accueil</button><button class="tab on">Tier lists</button><button class="tab">Tops</button></div></div>
+  <div style="max-width:960px;margin:0 auto">
+  <div class="crumb">Tier lists <i>›</i> <b>Mes animés</b></div>
+  <div class="title"><h3>Mes animés ▾</h3><button class="btn">Renommer</button></div>
+  <div class="tools"><button class="btn p"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Ajouter</button><button class="btn">Importer</button><button class="btn">Tri rapide</button><button class="btn">Sélectionner</button><span class="sp"></span><button class="btn">Taille ◐</button><button class="btn">Partager</button></div>
+  <div class="tiers" id="bT"></div><div class="cork" id="bC"></div></div>
+</div></div>
+
+<h2>C · Mobile : barre du bas</h2>
+<div class="sub">Sur téléphone, la navigation passe en bas, à portée de pouce : Accueil, Tier lists, Tops. Le gros « + » flottant ajoute un animé. Le haut ne garde que le titre et un menu « ⋯ ». Fonctionne avec A ou B sur PC.</div>
+<div class="row2"><div class="frame C">
+  <div class="bar"><div class="ic"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></div><h3>Mes animés</h3><div class="ic"><svg viewBox="0 0 24 24"><path d="M12 15V3M7.5 7.5L12 3l4.5 4.5M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg></div><div class="ic"><svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg></div></div>
+  <div class="body"><div class="tiers" id="cT"></div><div class="cork" id="cC" style="margin:10px;padding:8px"></div></div>
+  <div class="fab"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></div>
+  <div class="bottom"><button><svg viewBox="0 0 24 24"><path d="M4 11l8-7 8 7M6 10v10h4v-6h4v6h4V10"/></svg>Accueil</button><button class="on"><svg viewBox="0 0 24 24"><path d="M4 6h8M4 12h12M4 18h16"/></svg>Tier lists</button><button><svg viewBox="0 0 24 24"><path d="M8 4h8v5a4 4 0 0 1-8 0V4zM12 13v4M8 21h8M10 17h4"/></svg>Tops</button></div>
+</div></div>
+<script>
+const base = 'https://cdn.myanimelist.net/images/anime/';
+const P = ['4/19644.jpg', '1079/138100.jpg', '1223/96541.jpg', '13/11460.jpg', '1791/154233.jpg', '1958/158341.jpg', '1639/148263.jpg'];
+const pic = (i) => `<span class="pic" style="background-image:url(${base}${P[i % P.length]})"></span>`;
+const tiers = [['S', '#ff6b8b', 'Chef-d’œuvre', [0, 1, 2]], ['A', '#ffb83d', 'Excellent', [3, 4]], ['B', '#ffe066', 'Bien', [5, 6]]];
+const T = (n) => tiers.slice(0, n).map(([l, c, d, ids]) => `<div class="tier"><div class="l" style="color:${c}">${l}<small>${d}</small></div><div class="c">${ids.map(pic).join('')}</div></div>`).join('');
+for (const [id, n] of [['aT', 3], ['bT', 3], ['cT', 2]]) document.getElementById(id).innerHTML = T(n);
+for (const id of ['aC', 'bC', 'cC']) document.getElementById(id).innerHTML = [4, 5, 6, 0, 1].map(pic).join('');
+</script></body></html>

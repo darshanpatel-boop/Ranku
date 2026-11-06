@@ -57,7 +57,7 @@ const newList = (name, type = 'anime') => ({
 
 let db;
 try { db = JSON.parse(localStorage.getItem(STORE)); } catch { db = null; }
-if (!db || !Array.isArray(db.lists) || !db.lists.length) {
+if (!db || !Array.isArray(db.lists)) {
   const l = newList('Ma tier list');
   db = { v: 1, cur: l.id, lists: [l] };
 }
@@ -114,9 +114,45 @@ function card(list, key) {
     h('span', { class: 'tt' }, it.t));
 }
 
+// écran affiché quand il n'y a plus ni tier list ni top : petit tutoriel
+function renderWelcome() {
+  showView();
+  renderTabs();
+  $('#welcomeView').replaceChildren(
+    h('div', { class: 'wl-box' },
+      h('div', { class: 'wl-big' }, '🗂️'),
+      h('h2', {}, 'Rien ici pour l’instant'),
+      h('p', { class: 'wl-p' }, 'Pour commencer, crée une tier list ou un top avec les boutons « + » de la barre à gauche :'),
+      h('div', { class: 'wl-steps' },
+        h('div', {}, h('span', { class: 'wl-plus' }, svgEl(PLUS_ICON)), h('b', {}, 'Tier lists'), ' : classe tes animés ou tes personnages par niveaux (S, A, B…).'),
+        h('div', {}, h('span', { class: 'wl-plus' }, svgEl(PLUS_ICON)), h('b', {}, 'Tops'), ' : fais un top 5, 10 ou 15, numéroté de 1 à N.')),
+      h('p', { class: 'wl-mob' }, 'Sur téléphone, ouvre d’abord le menu ☰ en haut à droite.'),
+      h('div', { class: 'wl-btns' },
+        h('button', { class: 'tb-btn p', id: 'wlTier', type: 'button' }, svgEl(PLUS_ICON), 'Créer une tier list'),
+        h('button', { class: 'tb-btn p', id: 'wlTop', type: 'button' }, svgEl(PLUS_ICON), 'Créer un top'))));
+}
+
+const RESET_ICON = '<svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.5-5.8M4 4v4h4"/></svg>';
+let resetArmed = false, resetTimer;
+// remet toutes les cartes des tiers dans « Non classé » (en gardant l'ordre S, A, B…) ; deux appuis pour éviter l'accident
+function resetTiers() {
+  const list = cur();
+  if (!resetArmed) {
+    resetArmed = true; render();
+    clearTimeout(resetTimer); resetTimer = setTimeout(() => { resetArmed = false; if (UI.view === 'tiers') render(); }, 4000);
+    return;
+  }
+  clearTimeout(resetTimer); resetArmed = false;
+  const back = list.tiers.flatMap((t) => t.items.filter((k) => list.items[k]));
+  list.tiers.forEach((t) => (t.items = []));
+  list.pool = [...back, ...list.pool.filter((k) => !back.includes(k))];
+  save(); render();
+  toast(`${back.length} carte${back.length > 1 ? 's' : ''} remise${back.length > 1 ? 's' : ''} dans Non classé`);
+}
+
 function render() {
-  if (UI.view === 'home') { renderHome(); return; }
-  if (UI.view === 'tiersIdx' || UI.view === 'topsIdx') { renderIndex(); return; }
+  UI.view = fixView(UI.view);
+  if (UI.view === 'welcome') { renderWelcome(); return; }
   if (UI.view === 'top') { renderTop(); return; }
   showView();
   const list = cur();
@@ -131,9 +167,17 @@ function render() {
 
   // trait coloré continu sur le bord gauche : un seul dégradé de bas en haut des tiers
   const bar = `linear-gradient(180deg, ${list.tiers.map((t, i) => `${t.color} ${Math.round(((i + 0.5) / list.tiers.length) * 100)}%`).join(', ')})`;
-  board.append(h('div', { class: 'board-tools' },
+  board.append(...pageHead(list, [
+    h('button', { class: 'tb-btn p tb-add', type: 'button' }, svgEl(PLUS_ICON), 'Ajouter'),
+    list.type === 'char'
+      ? h('button', { class: 'tb-btn tb-chars', type: 'button' }, svgEl(IMPORT_ICON), 'Personnages de mes animés')
+      : h('button', { class: 'tb-btn tb-import', type: 'button' }, svgEl(IMPORT_ICON), 'Importer'),
+    h('button', { class: 'tb-btn', id: 'quickBtn', type: 'button', ...(poolTotal(list) ? {} : { disabled: '' }) }, 'Tri rapide'),
+    h('button', { class: 'tb-btn' + (resetArmed ? ' danger-on' : ''), id: 'resetBtn', type: 'button', ...(list.tiers.some((t) => t.items.some((k) => list.items[k])) ? {} : { disabled: '' }) }, svgEl(RESET_ICON), resetArmed ? 'Sûr ? Appuie pour tout remettre' : 'Réinitialiser'),
+    h('span', { class: 'sp' }),
     h('label', { class: 'size-ctl', title: 'Taille des affiches' }, svgEl(SIZE_SMALL), h('input', { type: 'range', id: 'sizeRange', min: '56', max: '140', step: '2', value: String(Math.round(currentCardW())) }), svgEl(SIZE_BIG)),
-    h('button', { class: 'share-btn', type: 'button' }, svgEl(SHARE_ICON), 'Partager')));
+    h('button', { class: 'tb-btn tb-share', type: 'button' }, svgEl(SHARE_ICON), 'Partager'),
+  ]));
   board.append(h('div', { class: 'tiers', style: `--bar:${bar}` }, list.tiers.map((t, i) =>
     h('div', { class: 'tier' + (t.id === freshTier ? ' pop' : ''), dataset: { id: t.id }, style: `--i:${i};--c1:${t.color};--c2:${shade(t.color, -0.2)}` },
       h('div', { class: 'mv' },
@@ -144,10 +188,6 @@ function render() {
       h('div', { class: 'zone', dataset: { zone: t.id } }, t.items.filter((k) => list.items[k]).map((k) => card(list, k))))),
     h('button', { class: 'add-tier', type: 'button' }, '＋ Ajouter un tier')));
   board.append(
-    h('button', { class: 'add-anime', type: 'button' }, svgEl('<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>'), h('span', { class: 'aa-t' }, list.type === 'char' ? 'Rechercher un personnage à ajouter…' : 'Rechercher un animé à ajouter…'), h('kbd', {}, '/'), h('span', { class: 'aa-b' }, 'Ajouter')),
-    h('div', { class: 'import-row' }, list.type === 'char'
-      ? h('button', { class: 'import-btn chars-btn', type: 'button' }, svgEl(IMPORT_ICON), 'Ajouter les personnages principaux de mes animés')
-      : h('button', { class: 'import-btn', type: 'button' }, svgEl(IMPORT_ICON), 'Importer ma liste')),
     h('div', { class: 'cork' },
       h('div', { class: 'note' }, 'Non classé', h('b', { class: 'cnt-n' }, String(poolTotal(list)))),
       h('div', { class: 'cork-tools' },
@@ -157,8 +197,7 @@ function render() {
           ...(list.type === 'char'
             ? [['title', 'Nom A → Z'], ['titleDesc', 'Nom Z → A'], ['anime', 'Par animé']]
             : [['title', 'Titre A → Z'], ['titleDesc', 'Titre Z → A'], ['yearAsc', 'Année : anciens d’abord'], ['yearDesc', 'Année : récents d’abord']]).map(([v, l]) => h('option', { value: v }, l))),
-        h('button', { class: 'ct-btn', id: 'quickBtn', type: 'button', ...(poolTotal(list) ? {} : { disabled: '' }) }, 'Tri rapide'),
-        h('button', { class: 'ct-btn' + (UI.selMode ? ' on' : ''), id: 'selBtn', type: 'button' }, UI.selMode ? 'Sélection en cours' : 'Sélectionner')),
+        ),
       h('div', { class: 'zone', dataset: { zone: 'pool' } }, list.pool.filter((k) => list.items[k]).map((k) => card(list, k)))));
 
   freshKey = null; freshTier = null;
@@ -205,17 +244,17 @@ function detach(list, key) {
 }
 
 $('#board').addEventListener('click', (e) => {
-  if (e.target.closest('.share-btn')) { openShare(); return; }
-  if (e.target.closest('.chars-btn')) { openChars(); return; }
-  if (e.target.closest('.import-btn')) { openImport(); return; }
-  if (e.target.closest('#selBtn')) { toggleSelMode(); return; }
+  if (e.target.closest('.tb-share')) { openShare(); return; }
+  if (e.target.closest('.tb-add')) { openSearch(); return; }
+  if (e.target.closest('.tb-chars')) { openChars(); return; }
+  if (e.target.closest('.tb-import')) { openImport(); return; }
+  if (e.target.closest('#resetBtn')) { resetTiers(); return; }
   if (e.target.closest('#quickBtn')) { openQuick(); return; }
   const card = e.target.closest('.card');
   if (card && UI.selMode) { toggleSel(card); return; }
   if (card && Date.now() - lastDrag > 300) { openFiche(card.dataset.k); return; }
   const mv = e.target.closest('[data-mv]');
   if (mv) { swapTier(mv.dataset.tier, Number(mv.dataset.mv)); return; }
-  if (e.target.closest('.add-anime')) { openSearch(); return; }
   if (e.target.closest('.add-tier')) { openTier(null); return; }
   const lab = e.target.closest('.tier-label');
   if (lab) openTier(lab.dataset.tier);
@@ -329,25 +368,72 @@ $('#tierDel').onclick = () => {
   $('#dlgTier').close();
 };
 
-// ---------- Barre de navigation : retour, accueil, nom de la liste en cours ----------
+// ---------- Barre du haut fixe (Accueil / Tier lists / Tops) + en-tête de page (fil d'Ariane, titre, outils) ----------
 const PENCIL = '<svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16v4z"/></svg>';
-const ICON_BACK = '<svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>';
-const ICON_HOME = '<svg viewBox="0 0 24 24"><path d="M4 11l8-7 8 7M6 10v10h4v-6h4v6h4V10"/></svg>';
+const PLUS_ICON = '<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>';
+const MENU_ICON = '<svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg>';
 function renderTabs() {
-  const v = UI.view, box = $('#listTabs');
-  const inList = v === 'tiers' || v === 'top';
-  const l = inList ? cur() : null;
-  box.replaceChildren(...[
-    v === 'home' ? null : h('button', { class: 'nav-ic', id: 'navBack', type: 'button', 'aria-label': 'Retour', title: 'Retour' }, svgEl(ICON_BACK)),
-    v === 'home' ? null : h('button', { class: 'nav-ic', id: 'navHome', type: 'button', 'aria-label': 'Accueil', title: 'Accueil' }, svgEl(ICON_HOME)),
-    l ? h('button', { class: 'nav-title', id: 'navTitle', type: 'button', title: 'Renommer ou supprimer' },
-      l.type === 'char' ? h('span', { class: 'ty' }, svgEl(USER_ICON)) : null, l.name, h('span', { class: 'ed' }, svgEl(PENCIL))) : null].filter(Boolean));
+  renderSide();
+  $('#listTabs').replaceChildren(h('button', { class: 'menu-btn', id: 'menuBtn', type: 'button', 'aria-label': 'Menu' }, svgEl(MENU_ICON)));
 }
-$('#listTabs').addEventListener('click', (e) => {
-  if (e.target.closest('#navHome')) { go('home'); return; }
-  if (e.target.closest('#navBack')) { goBack(); return; }
-  if (e.target.closest('#navTitle')) { UI.view === 'top' ? openTop(db.curTop) : openList(db.cur); }
+$('#listTabs').addEventListener('click', (e) => { if (e.target.closest('#menuBtn')) document.body.classList.toggle('side-open'); });
+document.addEventListener('click', (e) => { if (document.body.classList.contains('side-open') && !e.target.closest('#side') && !e.target.closest('#menuBtn')) document.body.classList.remove('side-open'); });
+
+// ----- Barre latérale façon explorateur : deux volets repliables (Tier lists, Tops), un « + » pour créer, un crayon au survol
+document.body.dataset.layout = 'a';
+function renderSide() {
+  db.side ??= { tiers: true, tops: true };
+  document.body.classList.toggle('side-min', !!db.sideMin);
+  const ic = (p) => svgEl('<svg viewBox="0 0 24 24"><path d="' + p + '"/></svg>');
+  const section = (kind, name, path, coll, curId, viewName) => {
+    const open = db.side[kind] !== false;
+    return [
+      h('div', { class: 'sd-head' },
+        h('button', { class: 'sd-nav' + (UI.view === viewName ? ' on' : ''), dataset: { toggle: kind }, type: 'button', 'aria-expanded': String(open) },
+          h('i', { class: 'car' + (open ? ' open' : '') }, '▸'), ic(path), h('span', { class: 'sd-t' }, name)),
+        h('button', { class: 'sd-plus', dataset: { add: kind }, type: 'button', 'aria-label': kind === 'tiers' ? 'Nouvelle tier list' : 'Nouveau top', title: kind === 'tiers' ? 'Nouvelle tier list' : 'Nouveau top' }, svgEl(PLUS_ICON))),
+      ...(open ? [h('div', { class: 'sd-list' },
+        ...(coll.length ? coll.map((l) => h('div', { class: 'sd-item' + (UI.view === viewName && l.id === curId ? ' on' : '') },
+          h('button', { class: 'sd-sub', dataset: { open: l.id, kind }, type: 'button', title: l.name }, l.type === 'char' ? svgEl(USER_ICON) : null, h('span', {}, l.name)),
+          h('button', { class: 'sd-ed', dataset: { edit: l.id, kind }, type: 'button', 'aria-label': 'Renommer ou supprimer', title: 'Renommer ou supprimer' }, svgEl(PENCIL))))
+          : [h('div', { class: 'sd-none' }, 'Aucun pour l’instant')]))] : []),
+    ];
+  };
+  $('#side').replaceChildren(
+    h('div', { class: 'sd-top' },
+      h('div', { class: 'brand sd-brand' }, h('img', { class: 'mark', src: 'icons/icon-192.png', alt: '', width: 34, height: 34 }), h('span', {}, 'Ran'), h('b', {}, 'ku')),
+      h('button', { class: 'sd-collapse', id: 'sdCollapse', type: 'button', 'aria-label': db.sideMin ? 'Agrandir la barre' : 'Réduire la barre', title: db.sideMin ? 'Agrandir la barre' : 'Réduire la barre' }, svgEl('<svg viewBox="0 0 24 24"><path d="' + (db.sideMin ? 'M9 5l7 7-7 7' : 'M15 5l-7 7 7 7') + '"/></svg>'))),
+    ...section('tiers', 'Tier lists', 'M4 6h8M4 12h12M4 18h16', db.lists, db.cur, 'tiers'),
+    ...section('tops', 'Tops', 'M8 4h8v5a4 4 0 0 1-8 0V4zM12 13v4M8 21h8M10 17h4', db.tops, db.curTop, 'top'),
+    h('span', { class: 'sd-fill' }));
+}
+$('#side').addEventListener('click', (e) => {
+  if (e.target.closest('#sdCollapse')) { db.sideMin = !db.sideMin; save(); renderSide(); return; }
+  const t = e.target.closest('[data-toggle]');
+  if (t && db.sideMin && window.innerWidth >= 900) { db.sideMin = false; db.side[t.dataset.toggle] = true; save(); renderSide(); return; } // barre réduite : un clic sur l'icône la rouvre
+  if (t) { db.side[t.dataset.toggle] = db.side[t.dataset.toggle] === false; save(); renderSide(); return; }
+  const a = e.target.closest('[data-add]');
+  if (a) { document.body.classList.remove('side-open'); a.dataset.add === 'tops' ? openTop(null) : openList(null); return; }
+  const o = e.target.closest('[data-open]');
+  if (o) {
+    document.body.classList.remove('side-open');
+    if (o.dataset.kind === 'tops') { db.curTop = o.dataset.open; save(); go('top'); } else { db.cur = o.dataset.open; save(); go('tiers'); }
+    return;
+  }
+  const ed = e.target.closest('[data-edit]');
+  if (ed) { document.body.classList.remove('side-open'); ed.dataset.kind === 'tops' ? openTop(ed.dataset.edit) : openList(ed.dataset.edit); }
 });
+
+// en-tête commun : titre, bouton Modifier, rangée d'outils étiquetés
+function pageHead(l, toolEls) {
+  return [
+    h('div', { class: 'pg-title' },
+      h('h2', { class: 'pg-h' }, l.type === 'char' ? svgEl(USER_ICON) : null, l.name),
+      h('button', { class: 'tb-btn', id: 'pgEdit', type: 'button' }, svgEl(PENCIL), 'Modifier')),
+    h('div', { class: 'tb-row' }, ...toolEls),
+  ];
+}
+document.addEventListener('click', (e) => { if (e.target.closest('#pgEdit')) UI.view === 'top' ? openTop(db.curTop) : openList(db.cur); });
 
 let editList = null; // id de la liste modifiée, null = création
 let delArmed = false;
@@ -370,18 +456,18 @@ $('#dlgList form').addEventListener('submit', (e) => {
   if (e.submitter?.value !== 'ok') return;
   const name = $('#listName').value.trim();
   if (!name) return;
+  let created = false;
   if (editList) db.lists.find((l) => l.id === editList).name = name;
-  else { const l = newList(name, listType); db.lists.push(l); db.cur = l.id; UI.view = 'tiersIdx'; }
-  save(); if (UI.view === 'tiersIdx') go('tiers'); else render();
+  else { const l = newList(name, listType); db.lists.push(l); db.cur = l.id; created = true; }
+  save(); if (created) go('tiers'); else render();
 });
 $('#listDel').onclick = () => {
-  if (db.lists.length === 1) return toast('Il faut garder au moins une tier list');
   if (!delArmed) { delArmed = true; $('#listDel').textContent = 'Sûr ? Appuie pour supprimer'; return; }
   db.lists = db.lists.filter((l) => l.id !== editList);
-  if (db.cur === editList) db.cur = db.lists[0].id;
+  if (db.cur === editList) db.cur = db.lists[0]?.id || null;
   editList = null;
   $('#dlgList').close('deleted');
-  save(); if (UI.view === 'tiers') go('tiersIdx'); else render();
+  save(); render();
 };
 $('#btnAbout').onclick = () => {
   $('#aboutDate').textContent = animeData ? `Base mise à jour le ${animeData.lastUpdate}.` : '';
@@ -676,6 +762,7 @@ $('#srDone').onclick = () => $('#dlgSearch').close();
 $('#dlgSearch').addEventListener('click', (e) => { if (e.target === $('#dlgSearch')) $('#dlgSearch').close(); });
 
 function openSearch() {
+  if (!cur()) return;
   const dlg = $('#dlgSearch');
   const chr = cur().type === 'char';
   const forTop = UI.view === 'top' ? ' à mon top' : '';
@@ -1688,89 +1775,38 @@ $('#dlgSort').addEventListener('keydown', (e) => {
 });
 
 // ---------- Navigation : accueil, tier lists, tops ----------
-const VIEWS = { '': 'home', '#tiers': 'tiersIdx', '#tier': 'tiers', '#tops': 'topsIdx', '#top': 'top' };
-const HASH = { home: '', tiersIdx: '#tiers', tiers: '#tier', topsIdx: '#tops', top: '#top' };
-UI.view = VIEWS[location.hash] || 'home'; // sans adresse précise, on ouvre l'accueil
-if (UI.view === 'top' && !db.tops.length) UI.view = 'topsIdx';
-const goBack = () => go(UI.view === 'tiers' ? 'tiersIdx' : UI.view === 'top' ? 'topsIdx' : 'home'); // retour d'un cran
+const VIEWS = { '#tier': 'tiers', '#top': 'top', '#start': 'welcome' };
+const HASH = { tiers: '#tier', top: '#top', welcome: '#start' };
+// une vue vide est remplacée : top sans top -> tier lists ; tier lists sans liste -> tops ou écran d'accueil
+const fixView = (v) => { if (v === 'top' && !db.tops.length) v = 'tiers'; if (v === 'tiers' && !db.lists.length) v = db.tops.length ? 'top' : 'welcome'; if (v === 'welcome' && (db.lists.length || db.tops.length)) v = db.lists.length ? 'tiers' : 'top'; return v; };
+const startView = () => fixView(VIEWS[location.hash] || (db.last === 'top' ? 'top' : 'tiers')); // on rouvre la dernière liste utilisée
+UI.view = startView();
 
 function go(view) {
   if (UI.view === view) { render(); return; }
   UI.view = view; UI.selMode = false; UI.sel.clear();
-  history.pushState(null, '', HASH[view] || location.pathname + location.search); // le bouton « retour » du téléphone fonctionne
+  history.pushState(null, '', HASH[view]); // le bouton « retour » du téléphone fonctionne
   window.scrollTo(0, 0);
   render();
 }
-window.addEventListener('popstate', () => { UI.view = VIEWS[location.hash] || 'home'; if (UI.view === 'top' && !db.tops.length) UI.view = 'topsIdx'; render(); });
-$('.brand').onclick = () => go('home');
+window.addEventListener('popstate', () => { UI.view = startView(); render(); });
+$('#welcomeView').addEventListener('click', (e) => {
+  if (e.target.closest('#wlTier')) openList(null);
+  else if (e.target.closest('#wlTop')) openTop(null);
+});
 
-// affiche seulement l'écran en cours ; la barre d'onglets et le « + » n'existent que dans les écrans de listes
+// affiche seulement l'écran en cours
 function showView() {
   document.body.dataset.view = UI.view;
-  $('#homeView').hidden = UI.view !== 'home';
-  $('#idxView').hidden = UI.view !== 'tiersIdx' && UI.view !== 'topsIdx';
   $('#board').hidden = UI.view !== 'tiers';
+  $('#welcomeView').hidden = UI.view !== 'welcome';
   $('#topView').hidden = UI.view !== 'top';
   if (UI.view !== 'tiers') $('#selBar').hidden = true;
+  if (db.last !== UI.view) { db.last = UI.view; save(); }
 }
 
-// ---------- Accueil ----------
 const ICON_TIERS = '<svg viewBox="0 0 24 24"><path d="M4 6h8M4 12h12M4 18h16"/></svg>';
 const ICON_TOP = '<svg viewBox="0 0 24 24"><path d="M8 4h8v5a4 4 0 0 1-8 0V4zM8 6H5a2 2 0 0 0 0 3 3 3 0 0 0 3 2M16 6h3a2 2 0 0 1 0 3 3 3 0 0 1-3 2M12 13v4M8 21h8M10 17h4"/></svg>';
-
-function homeCard(view, title, desc, meta, icon, cls) {
-  return h('button', { class: 'home-card ' + cls, dataset: { go: view }, type: 'button' },
-    h('span', { class: 'hc-ic' }, svgEl(icon)),
-    h('b', {}, title),
-    h('span', { class: 'hc-d' }, desc),
-    h('span', { class: 'hc-m' }, meta));
-}
-
-function renderHome() {
-  showView();
-  renderTabs();
-  const s = (n) => (n > 1 ? 's' : '');
-  const nL = db.lists.length, nT = db.tops.length;
-  $('#homeView').replaceChildren(
-    h('h2', { class: 'home-title' }, 'Que veux-tu faire ?'),
-    h('div', { class: 'home-grid' },
-      homeCard('tiersIdx', 'Tier lists', 'Classe tes animés et tes personnages par niveaux : S, A, B…', `${nL} liste${s(nL)}`, ICON_TIERS, 'c-tier'),
-      homeCard('topsIdx', 'Tops', 'Fais ton top 5, 10 ou 15, numéroté de 1 à N.', nT ? `${nT} top${s(nT)}` : 'Crée ton premier top', ICON_TOP, 'c-top')));
-}
-
-$('#homeView').addEventListener('click', (e) => {
-  const b = e.target.closest('[data-go]');
-  if (!b) return;
-  go(b.dataset.go);
-});
-
-// ---------- Index : toutes mes tier lists / tous mes tops ----------
-function renderIndex() {
-  showView();
-  renderTabs();
-  const tops = UI.view === 'topsIdx', coll = tops ? db.tops : db.lists;
-  const count = (l) => (tops ? `${l.slots.filter(Boolean).length} / ${l.size}` : `${Object.keys(l.items).length} carte${Object.keys(l.items).length > 1 ? 's' : ''}`);
-  const cards = coll.map((l) => h('div', { class: 'idx-card', dataset: { id: l.id } },
-    h('button', { class: 'idx-open', type: 'button' },
-      h('i', {}, svgEl(tops ? ICON_TOP : ICON_TIERS)),
-      h('span', {}, h('b', {}, l.name), h('small', {}, (l.type === 'char' ? 'Personnages · ' : 'Animés · ') + (tops ? 'Top ' + l.size + ' · ' : '') + count(l)))),
-    h('button', { class: 'idx-ed', type: 'button', 'aria-label': 'Modifier', title: 'Renommer ou supprimer' }, svgEl(PENCIL))));
-  cards.push(h('button', { class: 'idx-new', type: 'button' }, h('i', {}, '+'), tops ? 'Nouveau top' : 'Nouvelle tier list'));
-  $('#idxView').replaceChildren(
-    h('h2', { class: 'home-title' }, tops ? 'Mes tops' : 'Mes tier lists'),
-    ...(coll.length ? [] : [h('p', { class: 'idx-empty' }, tops ? 'Aucun top pour l’instant : crée ton premier top 5, 10 ou 15.' : 'Aucune tier list.')]),
-    h('div', { class: 'idx-grid' }, ...cards));
-}
-$('#idxView').addEventListener('click', (e) => {
-  const tops = UI.view === 'topsIdx';
-  if (e.target.closest('.idx-new')) { tops ? openTop(null) : openList(null); return; }
-  const card = e.target.closest('.idx-card');
-  if (!card) return;
-  const id = card.dataset.id;
-  if (e.target.closest('.idx-ed')) { if (tops) { db.curTop = id; openTop(id); } else { db.cur = id; openList(id); } return; }
-  if (tops) db.curTop = id; else db.cur = id;
-  save(); go(tops ? 'top' : 'tiers');
-});
 
 // ---------- Tops ----------
 const curTop = () => db.tops.find((t) => t.id === db.curTop) || db.tops[0] || null;
@@ -1813,12 +1849,11 @@ function renderTop() {
   topSortable?.destroy(); topSortable = null;
   const rows = top.slots.map((_, i) => topSlot(top, i));
   view.replaceChildren(...[
-    h('div', { class: 'board-tools' },
-      h('span', { class: 'tp-count' }, `${filled} / ${top.size} places`),
-      h('span', { class: 'tp-btns' },
-        h('button', { class: 'share-btn', type: 'button' }, svgEl(SHARE_ICON), 'Partager'))),
-    h('button', { class: 'add-anime', type: 'button' }, svgEl('<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>'),
-      h('span', { class: 'aa-t' }, top.type === 'char' ? 'Rechercher un personnage pour mon top…' : 'Rechercher un animé pour mon top…'), h('kbd', {}, '/'), h('span', { class: 'aa-b' }, 'Ajouter')),
+    ...pageHead(top, [
+      h('button', { class: 'tb-btn p tb-add', type: 'button' }, svgEl(PLUS_ICON), 'Ajouter'),
+      h('span', { class: 'tb-count' }, `${filled} / ${top.size} places`),
+      h('span', { class: 'sp' }),
+      h('button', { class: 'tb-btn tb-share', type: 'button' }, svgEl(SHARE_ICON), 'Partager')]),
     h('div', { class: 'tp-list' }, rows),
     filled > 1 ? h('p', { class: 'tp-hint' }, 'Glisse une carte pour changer son rang. Touche-la pour changer sa jaquette.') : null].filter(Boolean));
   // glisser-déposer : le classement est relu depuis l'ordre des lignes
@@ -1840,8 +1875,8 @@ function syncTop() {
 
 $('#topView').addEventListener('click', (e) => {
   if (e.target.closest('#tpNew')) { openTop(null); return; }
-  if (e.target.closest('.share-btn')) { openShare(); return; }
-  if (e.target.closest('.add-anime') || e.target.closest('.tp-add')) { openSearch(); return; }
+  if (e.target.closest('.tb-share')) { openShare(); return; }
+  if (e.target.closest('.tb-add') || e.target.closest('.tp-add')) { openSearch(); return; }
   const slot = e.target.closest('.tp-slot.filled');
   if (slot && Date.now() - lastDrag > 300) openFiche(slot.dataset.k);
 });
@@ -1880,6 +1915,7 @@ function openTop(id) {
 $('#dlgTop form').addEventListener('submit', (e) => {
   if (e.submitter?.value !== 'ok') return;
   const name = $('#topName').value.trim() || `Mon top ${TS.size}`;
+  let created = false;
   if (editTopId) {
     const t = db.tops.find((x) => x.id === editTopId);
     t.name = name;
@@ -1891,10 +1927,9 @@ $('#dlgTop form').addEventListener('submit', (e) => {
     }
   } else {
     const t = { id: uid(), name, type: TS.type, size: TS.size, items: {}, slots: Array(TS.size).fill(null), pool: [], tiers: [] };
-    db.tops.push(t); db.curTop = t.id;
-    UI.view = 'topsIdx';
+    db.tops.push(t); db.curTop = t.id; created = true;
   }
-  save(); if (UI.view === 'topsIdx') go('top'); else render();
+  save(); if (created) go('top'); else render();
 });
 $('#topDel').onclick = () => {
   if (!topDelArmed) { topDelArmed = true; $('#topDel').textContent = 'Sûr ? Appuie pour supprimer'; return; }
@@ -1902,7 +1937,7 @@ $('#topDel').onclick = () => {
   if (db.curTop === editTopId) db.curTop = db.tops[0]?.id || null;
   editTopId = null;
   $('#dlgTop').close('deleted');
-  save(); if (UI.view === 'top') go('topsIdx'); else render();
+  save(); if (UI.view === 'top' && !db.tops.length) go('tiers'); else render();
 };
 
 // ----- image du top : la liste numérotée, comme à l'écran
