@@ -72,6 +72,7 @@ const cur = () => db.lists.find((l) => l.id === db.cur) || db.lists[0];
 
 // ---------- Affichage ----------
 let sortables = [];
+let lastDrag = 0; // pour ne pas ouvrir la fiche juste après un glisser-déposer
 let freshKey = null, freshTier = null; // pour animer ce qui vient d'être ajouté
 let imgBase = 'https://cdn.myanimelist.net/images/anime/';
 
@@ -81,6 +82,7 @@ function card(list, key) {
   const it = list.items[key];
   return h('div', { class: 'card' + (key === freshKey ? ' pop' : ''), dataset: { k: key }, title: it.t },
     h('img', { src: imgUrl(it.i), alt: it.t, loading: 'lazy', draggable: 'false' }),
+    it.m && it.m.length > 1 ? h('span', { class: 'cnt' }, '×' + it.m.length) : null,
     h('span', { class: 'tt' }, it.t));
 }
 
@@ -125,7 +127,7 @@ function render() {
       swapThreshold: 0.6,
       ghostClass: 'sortable-ghost',
       chosenClass: 'sortable-chosen',
-      onEnd: syncFromDom,
+      onEnd: () => { lastDrag = Date.now(); syncFromDom(); },
     }));
   });
 }
@@ -147,6 +149,8 @@ function detach(list, key) {
 }
 
 $('#board').addEventListener('click', (e) => {
+  const card = e.target.closest('.card');
+  if (card && Date.now() - lastDrag > 300) { openFiche(card.dataset.k); return; }
   const mv = e.target.closest('[data-mv]');
   if (mv) { swapTier(mv.dataset.tier, Number(mv.dataset.mv)); return; }
   if (e.target.closest('.add-anime')) { openSearch(); return; }
@@ -326,12 +330,14 @@ $('#btnAbout').onclick = () => {
 let animeData = null;
 let index = null;
 let loading = null;
+let rowByKey = new Map(); // clé (a<idAniList> / m<idMAL>) -> indice de ligne dans la base
 
 function loadData() {
   if (animeData) return Promise.resolve();
   loading ||= fetch('data/anime.json').then((r) => r.json()).then((d) => {
     animeData = d;
     imgBase = d.imgBase;
+    rowByKey = new Map(d.rows.map((r, i) => [rowKey(r), i]));
     // n : titre puis synonymes, normalisés ; h : tout concaténé pour le filtre rapide
     index = d.rows.map((r) => {
       const n = [r[0], ...r[6]].map((x) => ' ' + norm(x).replace(/^(l|le|la|les|the|un|une) /, '') + ' ');
@@ -342,6 +348,12 @@ function loadData() {
 }
 
 const rowKey = (r) => (r[4] ? 'a' + r[4] : 'm' + r[5]);
+const rowOfKey = (k) => { const i = rowByKey.get(k); return i === undefined ? null : animeData.rows[i]; };
+const gidOf = (k) => rowOfKey(k)?.[8] || 0;                                   // licence d'un animé (0 = seul)
+const groupRows = (gid) => (animeData.groups[gid] || []).map((i) => animeData.rows[i]); // le premier = jaquette
+const fmtOf = (r) => animeData.types[r[1]];
+// clé de la carte de cette licence dans la liste (la clé peut changer si la jaquette de la base change : on cherche par contenu)
+const groupItemKey = (list, gid) => (gid && animeData ? Object.keys(list.items).find((k) => list.items[k].m && gidOf(list.items[k].m[0]) === gid) || null : null);
 
 function searchLocal(q) {
   const nq = norm(q).replace(/^(l|le|la|les|the|un|une) /, '');
@@ -401,13 +413,19 @@ const S = { items: [], ani: [], ids: new Set(), byKey: new Map(), type: 'all', h
 let toastSearchTimer;
 
 const itemFromRow = (r) => {
-  const f = animeData.types[r[1]];
-  return { key: rowKey(r), title: r[0], img: r[3], fmt: f, year: r[2] || '' };
+  const gid = r[8];
+  if (gid) {
+    const g = groupRows(gid), rep = g[0];
+    return { key: 'g' + rowKey(rep), gid, n: g.length, title: rep[0], img: rep[3], fmt: fmtOf(rep), year: rep[2] || '' };
+  }
+  return { key: rowKey(r), title: r[0], img: r[3], fmt: fmtOf(r), year: r[2] || '' };
 };
 const itemFromAni = (m) => {
   const f = FORMATS[m.format] || 'TV';
   return { key: 'a' + m.id, title: m.title.english || m.title.romaji, img: m.coverImage.large, fmt: f, year: m.seasonYear || '' };
 };
+const keyInList = (it) => (it.gid ? groupItemKey(cur(), it.gid) : (cur().items[it.key] ? it.key : null));
+const isAdded = (it) => !!keyInList(it);
 const inPill = (it, k) => k === 'all' || it.fmt === k || (k === 'OVA' && it.fmt === 'ONA');
 
 // Titre avec les lettres tapées surlignées (sans accents ni majuscules).
@@ -430,11 +448,11 @@ function srChip(added) {
 }
 
 function srItem(it, q, n = 0) {
-  const added = !!cur().items[it.key];
-  return h('div', { class: 'sr-it' + (added ? ' added' : ''), dataset: { k: it.key }, style: `--n:${Math.min(n, 14)}` },
+  const added = isAdded(it);
+  return h('div', { class: 'sr-it' + (added ? ' added' : '') + (it.gid ? ' stack' : ''), dataset: { k: it.key }, style: `--n:${Math.min(n, 14)}` },
     h('div', { class: 'sr-pic' }, h('img', { src: imgUrl(it.img), alt: '', loading: 'lazy' }), h('div', { class: 'sr-ov' }, srChip(added))),
     h('b', {}, hlNodes(it.title, q)),
-    h('span', { class: 'sr-meta' }, h('span', { class: 'sr-tag t-' + it.fmt }, TYPE_FR[it.fmt] || it.fmt), it.year ? ' ' + it.year : ''));
+    h('span', { class: 'sr-meta' }, h('span', { class: 'sr-tag t-' + it.fmt }, TYPE_FR[it.fmt] || it.fmt), it.gid ? ` ${it.n} saisons et films` : (it.year ? ' ' + it.year : '')));
 }
 
 function renderSearch(animate) {
@@ -451,7 +469,7 @@ function renderSearch(animate) {
       n, q.length >= 2 ? h('small', {}, String(all.filter((it) => inPill(it, k)).length)) : null)),
     h('span', { class: 'sw-tog' + (S.hide ? ' on' : ''), id: 'srTog' }, h('i'), 'Masquer ceux déjà ajoutés'));
 
-  const visible = (arr) => arr.filter((it) => inPill(it, S.type) && !(S.hide && list.items[it.key]));
+  const visible = (arr) => arr.filter((it) => inPill(it, S.type) && !(S.hide && isAdded(it)));
   const loc = visible(S.items), ani = visible(S.ani);
   const aniLabel = { '': 'Pas trouvé ? Chercher aussi sur AniList', loading: 'Recherche sur AniList…', done: S.ani.length ? `AniList : ${S.ani.length} résultat${S.ani.length > 1 ? 's' : ''} en plus` : 'Rien de plus sur AniList', error: 'AniList indisponible — réessayer' }[S.aniState];
 
@@ -487,7 +505,7 @@ async function doSearch() {
     try { await loadData(); } catch { $('#results').replaceChildren(h('div', { class: 'sw-hint' }, h('p', {}, 'Base indisponible. Réessaie avec internet.'))); return; }
   }
   const rows = searchLocal(q);
-  S.items = rows.map(itemFromRow);
+  S.items = [...new Map(rows.map(itemFromRow).map((it) => [it.key, it])).values()]; // une seule carte par licence
   S.ids = new Set(rows.flatMap((r) => [r[4] && 'a' + r[4], r[5] && 'm' + r[5]]).filter(Boolean));
   renderSearch(true);
 }
@@ -529,12 +547,9 @@ function updateMeta() {
   $('#srCount').textContent = S.session.size ? `${S.session.size} ajouté${S.session.size > 1 ? 's' : ''}` : '';
 }
 
-function toggleItem(it) {
+function refreshItem(it, added) {
   const el = $(`.sr-it[data-k="${CSS.escape(it.key)}"]`);
-  if (cur().items[it.key]) removeKey(it.key);
-  else { addItem(it.key, it.title, it.img); S.session.add(it.key); showUndo(it); }
   if (el) {
-    const added = !!cur().items[it.key];
     el.classList.toggle('added', added);
     el.querySelector('.sr-ov').replaceChildren(srChip(added));
     if (added) el.querySelector('.sr-chip').classList.add('just', 'pop'); // pas de « Retirer » tant que la souris reste sur le bouton
@@ -542,6 +557,81 @@ function toggleItem(it) {
   }
   updateMeta();
 }
+
+function toggleItem(it) {
+  const k = keyInList(it);
+  if (k) { removeKey(k); S.session.delete(it.key); }
+  else if (it.gid) { openDrawer(it); return; } // une licence : on choisit d'abord les saisons vues
+  else { addItem(it.key, it.title, it.img); S.session.add(it.key); showUndo(it); }
+  refreshItem(it, !!keyInList(it));
+}
+
+// ---------- Tiroir « quelles saisons as-tu vues ? » ----------
+const D = { it: null, picks: new Set() };
+const CB = '<svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+
+// une ligne saison / film : case, étiquette de type, titre, année (comme dans la fiche de licence)
+function memberLine(r, { on, off, act }) {
+  const f = fmtOf(r);
+  return h('button', { class: 'dr-m' + (on ? ' on' : '') + (off ? ' off' : ''), type: 'button', dataset: { mk: rowKey(r) }, ...(off ? { disabled: '' } : {}), ...(act ? { 'data-act': act } : {}) },
+    h('i', { class: 'cb' }, svgEl(CB)),
+    h('span', { class: 'sr-tag t-' + f }, TYPE_FR[f]),
+    h('span', { class: 't' }, r[0]),
+    h('em', {}, r[2] || ''));
+}
+
+function renderDrawer() {
+  const it = D.it, list = cur(), rows = groupRows(it.gid);
+  const apart = (r) => !!list.items[rowKey(r)];
+  const n = rows.filter((r) => D.picks.has(rowKey(r))).length;
+  $('#srDrawer').replaceChildren(
+    h('div', { class: 'dr-head' },
+      h('img', { src: imgUrl(it.img), alt: '' }),
+      h('div', { class: 'dr-t' }, h('h4', {}, it.title), h('span', {}, 'Quelles saisons et quels films as-tu vus ?')),
+      h('div', { class: 'dr-quick' },
+        h('button', { class: 'sw-pill', dataset: { dq: 'all' }, type: 'button' }, 'Tout'),
+        h('button', { class: 'sw-pill', dataset: { dq: 'tv' }, type: 'button' }, 'Séries'))),
+    h('div', { class: 'dr-list' }, rows.map((r) => memberLine(r, { on: D.picks.has(rowKey(r)), off: apart(r) }))),
+    h('div', { class: 'dr-act' },
+      h('span', { class: 'dr-note' }, 'Une seule carte sera ajoutée pour toute la licence.'),
+      h('button', { class: 'ghost', id: 'drCancel', type: 'button' }, 'Annuler'),
+      h('button', { class: 'primary', id: 'drOk', type: 'button', ...(n ? {} : { disabled: '' }) }, `Ajouter ${n} élément${n > 1 ? 's' : ''}`)));
+}
+
+function openDrawer(it) {
+  D.it = it;
+  D.picks = new Set([rowKey(groupRows(it.gid)[0])]);
+  renderDrawer();
+  $('#srDrawer').classList.add('show');
+}
+function closeDrawer() { D.it = null; $('#srDrawer').classList.remove('show'); }
+
+function confirmDrawer() {
+  const it = D.it, list = cur();
+  const m = groupRows(it.gid).map(rowKey).filter((k) => D.picks.has(k));
+  if (!m.length) return;
+  list.items[it.key] = { t: it.title, i: it.img, m };
+  list.pool.push(it.key);
+  freshKey = it.key;
+  save(); render();
+  S.session.add(it.key);
+  closeDrawer();
+  showUndo(it);
+  refreshItem(it, true);
+}
+
+$('#srDrawer').addEventListener('click', (e) => {
+  const m = e.target.closest('.dr-m');
+  if (m && !m.disabled) { const k = m.dataset.mk; D.picks.has(k) ? D.picks.delete(k) : D.picks.add(k); renderDrawer(); return; }
+  const q = e.target.closest('[data-dq]');
+  if (q) {
+    const list = cur();
+    D.picks = new Set(groupRows(D.it.gid).filter((r) => !list.items[rowKey(r)] && (q.dataset.dq === 'all' || fmtOf(r) === 'TV')).map(rowKey));
+    renderDrawer(); return;
+  }
+  if (e.target.closest('#drCancel')) closeDrawer();
+  if (e.target.closest('#drOk')) confirmDrawer();
+});
 
 $('#results').addEventListener('click', (e) => {
   if (e.target.closest('#srAni2')) { fetchAni(); return; }
@@ -595,9 +685,116 @@ $('#dlgSearch').addEventListener('close', () => {
   $('#q').value = '';
   Object.assign(S, { items: [], ani: [], aniState: '', undoKey: null, type: 'all' });
   S.session.clear();
+  closeDrawer();
   $('#srToast').classList.remove('show');
   render();
 });
+
+// ---------- Fiche d'une carte : saisons vues, jaquette, séparer / regrouper, retirer ----------
+let ficheKey = null;
+
+const rekey = (list, from, to) => {
+  list.pool = list.pool.map((k) => (k === from ? to : k));
+  list.tiers.forEach((t) => (t.items = t.items.map((k) => (k === from ? to : k))));
+};
+// place `key` juste après `after` dans le tier (ou le liège) qui contient `after`
+function insertAfter(list, after, key) {
+  const box = list.tiers.map((t) => t.items).concat([list.pool]).find((a) => a.includes(after)) || list.pool;
+  box.splice(box.indexOf(after) + 1, 0, key);
+}
+
+async function openFiche(key) {
+  if (!animeData) { try { await loadData(); } catch { /* hors ligne : la fiche s'affiche sans les saisons */ } }
+  ficheKey = key;
+  renderFiche();
+  if (!$('#dlgFiche').open && ficheKey) $('#dlgFiche').showModal();
+}
+
+function fiAction(label, act, k, cls = '') {
+  return h('button', { class: 'fi-a ' + cls, type: 'button', dataset: { fa: act, k }, title: label }, label);
+}
+
+function renderFiche() {
+  const list = cur(), it = list.items[ficheKey];
+  if (!it) { ficheKey = null; if ($('#dlgFiche').open) $('#dlgFiche').close(); return; }
+  $('#fiImg').src = imgUrl(it.i);
+  $('#fiTitle').textContent = it.t;
+  const box = $('#fiList');
+  const gid = it.m ? gidOf(it.m[0]) : gidOf(ficheKey);
+  const rows = animeData && gid ? groupRows(gid) : [];
+
+  if (it.m && rows.length) {
+    $('#fiSub').textContent = `${it.m.length} sur ${rows.length} dans ta liste`;
+    box.replaceChildren(
+      h('p', { class: 'fi-hint' }, 'Coche ce que tu as vu. L’étoile choisit la jaquette de la carte, « Séparer » en fait une carte à part.'),
+      ...rows.map((r) => {
+        const k = rowKey(r), on = it.m.includes(k), apart = !!list.items[k] && k !== ficheKey && !on;
+        return h('div', { class: 'fi-row' },
+          memberLine(r, { on, off: apart, act: 'toggle' }),
+          on ? fiAction(r[3] === it.i ? '★' : '☆', 'cover', k, r[3] === it.i ? 'on' : '') : null,
+          on && it.m.length > 1 ? fiAction('Séparer', 'split', k) : null,
+          apart ? fiAction('Regrouper', 'merge', k) : null);
+      }));
+  } else {
+    const r = rowOfKey(ficheKey);
+    $('#fiSub').textContent = r ? [TYPE_FR[fmtOf(r)], r[2] || null].filter(Boolean).join(' · ') : '';
+    box.replaceChildren(
+      rows.length > 1
+        ? h('div', { class: 'fi-solo' }, h('p', {}, `Cette carte est séparée de sa licence (${rows.length} éléments).`), h('button', { class: 'ghost', id: 'fiRegroup', type: 'button' }, 'Regrouper avec sa licence'))
+        : h('p', { class: 'fi-hint' }, 'Aucune autre saison liée à cet animé dans la base.'));
+  }
+}
+
+function fiAct(act, k) {
+  const list = cur(), it = list.items[ficheKey], r = rowOfKey(k);
+  if (act === 'toggle') {
+    if (it.m.includes(k)) {
+      if (it.m.length === 1) return toast('Pour tout retirer, utilise « Retirer de ma liste »');
+      it.m = it.m.filter((x) => x !== k);
+    } else it.m.push(k);
+  } else if (act === 'cover') {
+    it.i = r[3];
+  } else if (act === 'split') {
+    it.m = it.m.filter((x) => x !== k);
+    list.items[k] = { t: r[0], i: r[3] };
+    insertAfter(list, ficheKey, k);
+    freshKey = k;
+  } else if (act === 'merge') {
+    detach(list, k); delete list.items[k];
+    it.m.push(k);
+  }
+  save(); render(); renderFiche();
+}
+
+function regroupSolo() {
+  const list = cur(), gid = gidOf(ficheKey);
+  const target = groupItemKey(list, gid);
+  if (target) { // la carte de la licence existe déjà : on y ajoute celle-ci
+    list.items[target].m.push(ficheKey);
+    detach(list, ficheKey); delete list.items[ficheKey];
+    ficheKey = target;
+  } else { // sinon cette carte devient la carte de la licence
+    const rep = groupRows(gid)[0], nk = 'g' + rowKey(rep), old = list.items[ficheKey];
+    list.items[nk] = { t: rep[0], i: old.i, m: [ficheKey] };
+    rekey(list, ficheKey, nk);
+    delete list.items[ficheKey];
+    ficheKey = nk;
+  }
+  save(); render(); renderFiche();
+}
+
+$('#fiList').addEventListener('click', (e) => {
+  const a = e.target.closest('[data-fa]');
+  if (a) { fiAct(a.dataset.fa, a.dataset.k); return; }
+  const m = e.target.closest('.dr-m');
+  if (m && !m.disabled) { fiAct('toggle', m.dataset.mk); return; }
+  if (e.target.closest('#fiRegroup')) regroupSolo();
+});
+$('#fiDel').onclick = () => { const k = ficheKey; $('#dlgFiche').close(); removeKey(k); };
+$('#fiOk').onclick = () => $('#dlgFiche').close();
+$('#fiClose').onclick = () => $('#dlgFiche').close();
+$('#dlgFiche').addEventListener('click', (e) => { if (e.target === $('#dlgFiche')) $('#dlgFiche').close(); });
+$('#dlgFiche').addEventListener('close', () => { ficheKey = null; });
 
 // ---------- Démarrage ----------
 document.body.classList.add('boot'); // animation d'arrivée, retirée ensuite pour ne pas se rejouer
