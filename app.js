@@ -248,6 +248,7 @@ $('#tierDel').onclick = () => {
 
 // ---------- Plusieurs tier lists : onglets en haut, plus de menu caché ----------
 // Le fond bleu de l'onglet actif est un élément à part qui reste en place : quand l'onglet change, il glisse.
+const PENCIL = '<svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16v4z"/></svg>';
 const tabPill = h('span', { class: 'tab-pill' });
 function placePill(animate = true) {
   const on = $('#listTabs .chip.on');
@@ -263,13 +264,11 @@ function renderTabs() {
   const box = $('#listTabs');
   box.replaceChildren(
     tabPill,
-    ...db.lists.flatMap((l) => {
+    ...db.lists.map((l) => {
       const on = l.id === db.cur;
-      const out = [h('button', { class: 'chip' + (on ? ' on' : ''), dataset: { list: l.id }, type: 'button' }, l.name)];
-      if (on) out.push(h('button', { class: 'chip-edit', dataset: { editlist: '1' }, 'aria-label': 'Renommer ou supprimer cette liste', type: 'button' }, '✎'));
-      return out;
-    }),
-    h('button', { class: 'chip add', dataset: { newlist: '1' }, type: 'button' }, '＋ Nouvelle liste'));
+      return h('button', { class: 'chip' + (on ? ' on' : ''), dataset: { list: l.id }, type: 'button', title: on ? 'Renommer ou supprimer cette liste' : null },
+        l.name, on ? h('span', { class: 'ed' }, svgEl(PENCIL)) : null);
+    }));
   $('.chip.on', box)?.scrollIntoView({ inline: 'nearest', block: 'nearest' });
   placePill();
 }
@@ -307,12 +306,15 @@ $('#listDel').onclick = () => {
   $('#dlgList').close('deleted');
   save(); render();
 };
+// Un clic sur un onglet change de liste ; un clic sur l'onglet déjà actif ouvre son renommage / sa suppression.
 $('#listTabs').addEventListener('click', (e) => {
   const chip = e.target.closest('[data-list]');
-  if (chip) { db.cur = chip.dataset.list; save(); render(); $('#board').animate([{ opacity: 0, transform: 'translateY(8px)' }, { opacity: 1, transform: 'none' }], { duration: 260, easing: 'ease-out' }); return; }
-  if (e.target.closest('[data-editlist]')) openList(cur().id);
-  else if (e.target.closest('[data-newlist]')) openList(null);
+  if (!chip) return;
+  if (chip.dataset.list === db.cur) { openList(db.cur); return; }
+  db.cur = chip.dataset.list; save(); render();
+  $('#board').animate([{ opacity: 0, transform: 'translateY(8px)' }, { opacity: 1, transform: 'none' }], { duration: 260, easing: 'ease-out' });
 });
+$('#btnNewList').onclick = () => openList(null);
 
 $('#btnAbout').onclick = () => {
   $('#aboutDate').textContent = animeData ? `Base mise à jour le ${animeData.lastUpdate}.` : '';

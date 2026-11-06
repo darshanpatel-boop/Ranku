@@ -319,3 +319,20 @@ button.danger { background: #3a2328; color: #ff9a9a; border: 2px solid var(--lin
 .tab-pill { background: linear-gradient(180deg, #ffe27a 0%, #ffd24d 55%, #f7b32b 100%); border: 2px solid #11131a; border-radius: 13px; rotate: -2deg; box-shadow: 0 3px 0 #11131a, 0 0 0 1px rgba(255,255,255,.1), inset 0 2px 0 rgba(255,255,255,.55), inset 0 -3px 0 rgba(214,124,0,.55); }
 .list-tabs .chip.on { color: #2a1a00; text-shadow: none; font-weight: 800; rotate: -2deg; }
 .list-tabs .chip:not(.on):not(.add) { color: #eef0f7; font-weight: 500; }
+
+/* ===== Reste de la barre : crayon dans l'onglet actif, bouton rond « + » à droite ===== */
+.top { flex-wrap: wrap; align-items: center; }
+.brand { order: 1; }
+.newlist { order: 2; margin-left: auto; width: 44px; height: 44px; padding: 0; flex: none; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: var(--accent); border: 2px solid var(--line); box-shadow: 0 3px 0 var(--line), inset 0 2px 0 rgba(255,255,255,.25); }
+.newlist svg { width: 22px; height: 22px; stroke: #fff; fill: none; stroke-width: 3.2; stroke-linecap: round; transition: rotate .3s cubic-bezier(.3, 1.5, .5, 1); }
+.newlist:hover svg { rotate: 90deg; }
+.newlist:active { translate: 0 2px; scale: 1; box-shadow: 0 1px 0 var(--line); }
+.list-tabs { order: 3; flex: 1 0 100%; }
+@media (min-width: 700px) {
+  .newlist { order: 3; margin-left: 0; }
+  .list-tabs { order: 2; flex: 1; min-width: 0; }
+}
+.list-tabs .chip { display: flex; align-items: center; }
+.chip .ed { display: inline-flex; margin-left: 9px; opacity: .55; transition: opacity .15s; }
+.chip .ed svg { width: 13px; height: 13px; stroke: currentColor; fill: none; stroke-width: 2.4; stroke-linejoin: round; stroke-linecap: round; }
+.chip.on:hover .ed { opacity: 1; }
