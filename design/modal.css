@@ -1,0 +1,17 @@
+/* Coque commune des fenêtres « Ajouter des animés » (pages de test) */
+body { min-height: 100vh; background: #23262f; overflow: hidden; }
+.behind { position: fixed; inset: 0; padding: 70px 24px; display: flex; flex-direction: column; gap: 10px; max-width: 1060px; margin: 0 auto; filter: blur(2px); opacity: .55; }
+.behind i { display: block; height: 118px; border-radius: 14px; background: linear-gradient(90deg, #3a3347, #1c1f27 70%); }
+.veil { position: fixed; inset: 0; background: rgba(8,9,14,.62); display: flex; align-items: center; justify-content: center; padding: 20px; }
+.win { width: min(960px, 100%); max-height: calc(100vh - 40px); display: flex; flex-direction: column; border-radius: 20px; background: #262a35; border: 2px solid #12141b; box-shadow: 0 8px 0 rgba(0,0,0,.35), 0 30px 80px rgba(0,0,0,.6); overflow: hidden; }
+.win .x { width: 38px; height: 38px; border: 0; border-radius: 50%; background: rgba(255,255,255,.1); color: #fff; font-size: 16px; cursor: pointer; flex: none; }
+.win .x:hover { background: rgba(255,255,255,.2); }
+.pill { border: 0; border-radius: 99px; padding: 7px 14px; background: #343949; color: #d4d8e8; font: 600 13px Inter, sans-serif; cursor: pointer; }
+.pill.on { background: #ffd24d; color: #2a1a00; }
+.go { border: 0; border-radius: 12px; padding: 11px 20px; background: #ffd24d; color: #2a1a00; font: 700 15px Inter, sans-serif; box-shadow: 0 3px 0 #c98a00; cursor: pointer; }
+.srch { display: flex; align-items: center; gap: 10px; background: #1c1f27; border: 2px solid #3a3f50; border-radius: 14px; padding: 0 14px; }
+.srch:focus-within { border-color: #ffd24d; box-shadow: 0 0 0 4px rgba(255,210,77,.15); }
+.srch input { flex: 1; min-width: 0; background: transparent; border: 0; outline: 0; color: #f3f4f8; font: 600 17px Inter, sans-serif; padding: 14px 0; }
+.srch svg { width: 20px; height: 20px; stroke: #9aa0b4; fill: none; stroke-width: 2.2; flex: none; }
+.meta { color: #9aa0b4; font-size: 12px; }
+.empty { color: #9aa0b4; text-align: center; padding: 40px 10px; grid-column: 1 / -1; }

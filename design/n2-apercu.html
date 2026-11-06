@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Ajout N2</title>
+<link rel="stylesheet" href="base.css"><link rel="stylesheet" href="modal.css">
+<style>
+/* N2 — Liste + aperçu : on choisit un animé à gauche, on l'ajoute directement DANS un tier à droite */
+.win { height: min(640px, calc(100vh - 40px)); }
+.top { display: flex; align-items: center; gap: 12px; padding: 16px 18px; border-bottom: 1px solid #12141b; background: #1f222b; }
+.top .srch { flex: 1; }
+.cols { flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr 330px; }
+.list { overflow-y: auto; padding: 8px; border-right: 1px solid #12141b; }
+.row { display: flex; align-items: center; gap: 12px; width: 100%; padding: 7px; border: 0; border-radius: 12px; background: transparent; color: inherit; text-align: left; font: inherit; cursor: pointer; }
+.row:hover { background: #2f3441; }
+.row.sel { background: #343949; box-shadow: 0 0 0 2px #ffd24d inset; }
+.row img { width: 46px; height: 66px; object-fit: cover; border-radius: 7px; border: 2px solid #0e1016; flex: none; }
+.row b { display: block; font: 600 14px/1.25 Inter, sans-serif; }
+.row .st { margin-left: auto; font-size: 12px; color: #ffd24d; white-space: nowrap; }
+.prev { padding: 18px; display: flex; flex-direction: column; gap: 10px; align-items: center; text-align: center; background: radial-gradient(ellipse at 50% 0%, rgba(255,210,77,.12), transparent 60%); }
+.prev img { width: 170px; aspect-ratio: 2/3; object-fit: cover; border-radius: 14px; border: 2px solid #0e1016; box-shadow: 0 6px 0 rgba(0,0,0,.4), 0 16px 30px rgba(0,0,0,.5); }
+.prev h3 { margin: 4px 0 0; font: 800 20px/1.1 'Baloo 2', sans-serif; }
+.prev .lab { font-size: 12px; color: #9aa0b4; margin-top: 6px; }
+.tiers { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.tiers button { min-width: 44px; height: 44px; border: 0; border-radius: 12px; font: 800 20px 'Baloo 2', sans-serif; cursor: pointer; box-shadow: 0 3px 0 rgba(0,0,0,.4); }
+.tiers button.pool { font: 600 13px Inter, sans-serif; padding: 0 12px; background: #343949; color: #e4e7f3; }
+.bot { padding: 12px 18px; border-top: 1px solid #12141b; display: flex; align-items: center; gap: 12px; background: #1f222b; }
+.bot a { color: #ffd24d; font-size: 13px; text-decoration: underline; cursor: pointer; margin-right: auto; }
+@media (max-width: 760px) { .cols { grid-template-columns: 1fr; } .prev { display: none; } }
+</style></head><body>
+<script src="mock.js"></script><script src="modal.js"></script>
+<div class="veil"><div class="win">
+  <div class="top"><label class="srch"><span id="ic"></span><input id="q" placeholder="Chercher un animé…" autocomplete="off"></label><button class="x" aria-label="Fermer">✕</button></div>
+  <div class="cols"><div class="list" id="list"></div><div class="prev" id="prev"></div></div>
+  <div class="bot"><a>Pas trouvé ? Chercher aussi sur AniList</a><button class="go">Terminé</button></div>
+</div></div>
+<script>
+document.getElementById('ic').innerHTML = ICON;
+const TIERS = [['S', '#ff7aa2', '#fff'], ['A', '#ffb83d', '#2a1a00'], ['B', '#ffe066', '#2a2200'], ['C', '#4ade9f', '#04281c'], ['D', '#6ea0ff', '#fff']];
+const where = { 2: 'S', 6: 'Non classé' }; // animés déjà ajoutés (démo)
+let cur = 0;
+const q = document.getElementById('q');
+function draw() {
+  const rows = found(q.value);
+  if (rows.length && !rows.some((m) => m.n === cur)) cur = rows[0].n;
+  document.getElementById('list').innerHTML = rows.map((m) => `<button class="row${m.n === cur ? ' sel' : ''}" data-n="${m.n}"><img src="${m.i}" alt=""><span><b>${m.t}</b><span class="meta">${m.meta}</span></span>${where[m.n] ? `<span class="st">✓ ${where[m.n]}</span>` : ''}</button>`).join('') || '<div class="empty">Aucun résultat.</div>';
+  const m = MOCK[cur] && rows.find((r) => r.n === cur);
+  document.getElementById('prev').innerHTML = m ? `<img src="${m.i}" alt=""><h3>${m.t}</h3><span class="meta">${m.meta}</span><div class="lab">Ajouter directement dans :</div><div class="tiers">${TIERS.map(([n, c, k]) => `<button data-t="${n}" style="background:${c};color:${k}">${n}</button>`).join('')}<button class="pool" data-t="Non classé">Non classé</button></div>` : '';
+}
+document.getElementById('list').addEventListener('click', (e) => { const r = e.target.closest('.row'); if (r) { cur = +r.dataset.n; draw(); } });
+document.getElementById('prev').addEventListener('click', (e) => { const b = e.target.closest('[data-t]'); if (b) { where[cur] = b.dataset.t; draw(); } });
+q.addEventListener('input', draw);
+draw();
+</script></body></html>
