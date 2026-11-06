@@ -1,0 +1,73 @@
+/* Fenêtre « Ajouter des animés » — base O3 en bleu, sans encoche dans le coin */
+:root { --blue: #4f8cff; --blue-d: #2f5fcf; --blue-soft: #26335a; }
+body { min-height: 100vh; background: #23262f; overflow: hidden; }
+.win { position: relative; width: min(980px, 100%); height: min(720px, calc(100vh - 40px)); display: flex; flex-direction: column; border-radius: 22px; background: linear-gradient(180deg, #243050 0, #262a35 190px); border: 2px solid #12141b; box-shadow: 0 8px 0 rgba(0,0,0,.35), 0 30px 80px rgba(0,0,0,.6); overflow: hidden; }
+.head { display: flex; align-items: center; gap: 12px; padding: 18px 22px 0; }
+.head h2 { margin: 0; flex: 1; font: 800 28px 'Baloo 2', sans-serif; }
+.x { width: 38px; height: 38px; border: 0; border-radius: 50%; background: rgba(255,255,255,.1); color: #fff; font-size: 15px; cursor: pointer; flex: none; }
+.x:hover { background: rgba(255,255,255,.2); }
+.bar { padding: 14px 22px 8px; }
+.srch { display: flex; align-items: center; gap: 10px; background: #1a1d27; border: 2px solid #3a4260; border-radius: 16px; padding: 0 12px 0 16px; transition: border-color .15s, box-shadow .15s; }
+.srch:focus-within { border-color: var(--blue); box-shadow: 0 0 0 5px rgba(79,140,255,.22); }
+.srch svg { width: 21px; height: 21px; stroke: #8f98b8; fill: none; stroke-width: 2.2; flex: none; }
+.srch input { flex: 1; min-width: 0; background: transparent; border: 0; outline: 0; color: #f3f4f8; font: 600 18px Inter, sans-serif; padding: 16px 0; }
+.srch kbd { font: 600 11px Inter, sans-serif; color: #8f98b8; border: 1px solid #3a4260; border-radius: 6px; padding: 2px 7px; }
+.srch .clr { width: 28px; height: 28px; border: 0; border-radius: 50%; background: #343c58; color: #cfd6ee; font-size: 12px; cursor: pointer; display: none; }
+.has-q .srch .clr { display: block; } .has-q .srch kbd { display: none; }
+.tools { display: flex; align-items: center; gap: 8px; padding: 6px 22px 12px; overflow-x: auto; }
+.pill { flex: none; border: 0; border-radius: 99px; padding: 8px 15px; background: #323a56; color: #d4d9ee; font: 600 13px Inter, sans-serif; cursor: pointer; }
+.pill.on { background: var(--blue); color: #fff; box-shadow: 0 2px 0 var(--blue-d); }
+.pill small { opacity: .7; margin-left: 5px; }
+.tog { margin-left: auto; display: flex; align-items: center; gap: 8px; color: #b9c0dc; font: 600 13px Inter, sans-serif; cursor: pointer; flex: none; user-select: none; }
+.tog i { width: 36px; height: 20px; border-radius: 99px; background: #3a4260; position: relative; transition: background .15s; }
+.tog i::after { content: ''; position: absolute; top: 3px; left: 3px; width: 14px; height: 14px; border-radius: 50%; background: #fff; transition: transform .15s; }
+.tog.on i { background: var(--blue); } .tog.on i::after { transform: translateX(16px); }
+.cnt { color: #8f98b8; font-size: 12px; padding: 0 22px 6px; min-height: 22px; }
+
+.grid { flex: 1; overflow-y: auto; padding: 8px 22px 24px; display: grid; grid-template-columns: repeat(auto-fill, minmax(128px, 1fr)); gap: 22px 14px; align-content: start; }
+.it { position: relative; cursor: pointer; background: none; border: 0; padding: 0; color: inherit; text-align: left; font: inherit; outline: 0; animation: pop .3s both; animation-delay: calc(var(--d, 0) * 28ms); }
+@keyframes pop { from { opacity: 0; transform: translateY(10px) scale(.97); } to { opacity: 1; transform: none; } }
+.pic { position: relative; display: block; border-radius: 13px; }
+.pic img { width: 100%; aspect-ratio: 2/3; object-fit: cover; display: block; border-radius: 13px; border: 2px solid #0e1016; box-shadow: 0 4px 0 rgba(0,0,0,.4); transition: transform .18s, filter .18s; }
+.it:hover .pic img { transform: translateY(-4px); }
+.it b { display: block; margin-top: 9px; font: 600 13px/1.25 Inter, sans-serif; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.it mark { background: rgba(79,140,255,.4); color: #fff; border-radius: 3px; padding: 0 1px; }
+.meta { color: #8f98b8; font-size: 12px; }
+.it.kf .pic::after { content: ''; position: absolute; inset: -5px; border-radius: 17px; border: 2px dashed rgba(127,176,255,.9); pointer-events: none; }
+.sk { aspect-ratio: 2/3; border-radius: 13px; background: linear-gradient(100deg, #2b3350 30%, #36406a 50%, #2b3350 70%) 0 0 / 300% 100%; animation: sh 1s linear infinite; }
+@keyframes sh { to { background-position: -300% 0; } }
+.hint, .empty { grid-column: 1 / -1; text-align: center; color: #9aa4c4; padding: 54px 20px; }
+.hint .big, .empty .big { font-size: 46px; margin-bottom: 8px; }
+.hint p, .empty p { margin: 4px 0; } .hint small { color: #707a9c; }
+.empty button { margin-top: 12px; border: 0; border-radius: 12px; padding: 11px 18px; background: var(--blue); color: #fff; font: 700 14px Inter, sans-serif; box-shadow: 0 3px 0 var(--blue-d); cursor: pointer; }
+
+.foot { display: flex; align-items: center; gap: 14px; padding: 14px 22px; border-top: 1px solid #12141b; background: #1d212d; min-height: 70px; }
+.foot a { color: #7fb0ff; font-size: 13px; cursor: pointer; margin-right: auto; text-decoration: underline; }
+.foot .count { color: #c9cde0; font-size: 14px; }
+.go { border: 0; border-radius: 13px; padding: 12px 22px; background: var(--blue); color: #fff; font: 700 15px Inter, sans-serif; box-shadow: 0 3px 0 var(--blue-d); cursor: pointer; }
+
+/* — Mode « voile » : au survol un grand + ; ajouté = voile bleu + coche au centre, plus aucune encoche — */
+.m-veil .ov { position: absolute; inset: 0; border-radius: 13px; display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity .15s; }
+.m-veil .it:hover .ov, .m-veil .it.kf .ov { opacity: 1; background: rgba(10,14,28,.35); }
+.m-veil .ov .plus { width: 52px; height: 52px; border-radius: 50%; background: rgba(255,255,255,.18); backdrop-filter: blur(6px); border: 2px solid rgba(255,255,255,.55); color: #fff; font: 600 30px/1 Inter; display: flex; align-items: center; justify-content: center; }
+.m-veil .it.added .ov { opacity: 1; background: linear-gradient(180deg, rgba(47,95,207,.55), rgba(47,95,207,.8)); }
+.m-veil .it.added .ov .plus { background: #fff; border-color: #fff; color: var(--blue-d); animation: chk .28s cubic-bezier(.3,1.6,.5,1); }
+@keyframes chk { from { transform: scale(.3); } to { transform: scale(1); } }
+
+/* — Mode « barre » : un bouton large intégré en bas de l'affiche — */
+.m-bar .ov { position: absolute; left: 8px; right: 8px; bottom: 8px; }
+.m-bar .abar { display: block; text-align: center; padding: 8px 0; border-radius: 10px; background: rgba(12,16,30,.72); backdrop-filter: blur(6px); color: #fff; font: 700 13px Inter, sans-serif; border: 1px solid rgba(255,255,255,.18); transition: background .15s; }
+.m-bar .it:hover .abar { background: var(--blue); border-color: transparent; }
+.m-bar .it.added .abar { background: var(--blue); border-color: transparent; }
+.m-bar .it.added .pic img { filter: brightness(.8); }
+.toast { position: absolute; left: 50%; bottom: 84px; transform: translate(-50%, 20px); opacity: 0; pointer-events: none; display: flex; align-items: center; gap: 14px; background: #0f1220; border: 1px solid #3a4260; color: #e9ecf8; padding: 11px 16px; border-radius: 14px; font: 600 13px Inter, sans-serif; box-shadow: 0 10px 30px rgba(0,0,0,.5); transition: .2s; white-space: nowrap; max-width: 90%; z-index: 20; }
+.toast.show { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
+.toast button { border: 0; background: transparent; color: #7fb0ff; font: 700 13px Inter; cursor: pointer; text-decoration: underline; }
+
+/* — Mode « dock » : anneau lumineux + un dock en bas avec les miniatures choisies — */
+.m-dock .it.added .pic img { box-shadow: 0 0 0 3px var(--blue), 0 0 24px rgba(79,140,255,.65); transform: translateY(-3px); }
+.dock { display: flex; align-items: center; gap: 14px; flex: 1; min-width: 0; }
+.dock .none { color: #7380a8; font-size: 13px; }
+.dock .th { display: flex; align-items: center; flex: 1; min-width: 0; padding: 4px 0 4px 8px; overflow-x: auto; }
+.dock .th img { width: 38px; height: 54px; flex: none; object-fit: cover; border-radius: 7px; border: 2px solid #12141b; margin-left: -8px; box-shadow: 2px 0 6px rgba(0,0,0,.45); animation: pop .25s both; }
+.dock .th img:first-child { margin-left: 0; }
