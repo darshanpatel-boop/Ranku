@@ -12,17 +12,18 @@ function mount(opt) {
     <div class="toast" id="toast"></div>
   </div></div>`);
   document.getElementById('ic').innerHTML = ICON;
-  if (opt.states) {
-    const S = [['grad', 'Dégradé'], ['mint', 'Menthe'], ['ghost', 'Contour'], ['white', 'Blanc'], ['coral', 'Corail']];
-    document.querySelector('.veil').insertAdjacentHTML('afterbegin', '<div class="sw"><span>Style de « Ajouté » :</span>' + S.map(([k, n], i) => '<button class="pill' + (i ? '' : ' on') + '" data-s="' + k + '">' + n + '</button>').join('') + '</div>');
-    $('win').classList.add('s-grad');
-    document.querySelector('.sw').addEventListener('click', (e) => {
-      const b = e.target.closest('[data-s]'); if (!b) return;
-      document.querySelectorAll('.sw .pill').forEach((p) => p.classList.toggle('on', p === b));
-      $('win').className = $('win').className.replace(/ s-w+/, '') + ' s-' + b.dataset.s;
-    });
-  }
   const $ = (id) => document.getElementById(id);
+  if (opt.states) {
+    const S = [["strip", "Barre"], ["float", "Pilule"], ["chip", "Puce"], ["under", "Sous l'affiche"], ["icon", "Rond + texte"]];
+    document.querySelector(".veil").insertAdjacentHTML("afterbegin", '<div class="sw"><span>Forme du bouton :</span>' + S.map(([k, n], i) => '<button class="pill' + (i ? "" : " on") + '" data-s="' + k + '">' + n + "</button>").join("") + "</div>");
+    const setStyle = (k) => {
+      S.forEach(([x]) => $("win").classList.remove("s-" + x));
+      $("win").classList.add("s-" + k);
+      document.querySelectorAll(".sw .pill").forEach((p) => p.classList.toggle("on", p.dataset.s === k));
+    };
+    setStyle("strip");
+    document.querySelector(".sw").addEventListener("click", (e) => { const b = e.target.closest("[data-s]"); if (b) setStyle(b.dataset.s); });
+  }
   const added = new Set([2, 6]);
   let kf = 0, hideAdded = false, type = 'Tous', timer, undo = null;
   const hl = (t, s) => { const i = norm(t).indexOf(norm(s.trim())); return !s.trim() || i < 0 ? t : t.slice(0, i) + '<mark>' + t.slice(i, i + s.trim().length) + '</mark>' + t.slice(i + s.trim().length); };
@@ -35,7 +36,7 @@ function mount(opt) {
   function overlay(m) {
     const a = added.has(m.n);
     if (mode === 'veil') return `<span class="ov"><span class="plus">${a ? '✓' : '+'}</span></span>`;
-    if (mode === 'bar') return `<span class="ov"><span class="abar">${a ? '<span class="t1">Ajouté</span><span class="t2">Retirer</span>' : '＋ Ajouter'}</span></span>`;
+    if (mode === 'bar') return `<span class="ov"><span class="abar">${a ? '<i class="ic dot"></i><span class="t1">Ajouté</span><span class="t2">Retirer</span>' : '<i class="ic">+</i><span class="tx">Ajouter</span>'}</span></span>`;
     return '';
   }
   function draw(skeleton) {
