@@ -172,20 +172,37 @@ $('#board').addEventListener('click', (e) => {
 });
 
 // ---------- Tiers : fenêtre unique pour créer ou modifier (nom, légende, couleur parmi une palette) ----------
-const SWATCHES = ['#ff7aa2', '#ff5d5d', '#ffb83d', '#ffe066', '#4ade9f', '#2dd4bf', '#6ea0ff', '#818cf8', '#b794f6', '#e879f9', '#9ca3af', '#f3f4f8'];
+const SWATCHES = ['#ff7aa2', '#ff5d5d', '#ff8a4c', '#ffb83d', '#ffe066', '#a3e635', '#4ade9f', '#2dd4bf', '#38bdf8', '#6ea0ff', '#818cf8', '#a78bfa', '#b794f6', '#e879f9', '#fb7185', '#9ca3af', '#f3f4f8'];
 let editTier = null; // id du tier modifié, null = création
 let draft = { name: '', desc: '', color: SWATCHES[0] };
 
+function paintTierPreview() {
+  $('#tierPrev').style.cssText = `--c1:${draft.color};--c2:${shade(draft.color, -0.2)}`;
+}
+
 function renderTierDialog() {
   const prev = $('#tierPrev');
-  prev.style.cssText = `--c1:${draft.color};--c2:${shade(draft.color, -0.2)}`;
+  paintTierPreview();
   $('b', prev).textContent = draft.name || '?';
   $('small', prev).textContent = draft.desc;
-  const colors = SWATCHES.includes(draft.color) ? SWATCHES : [draft.color, ...SWATCHES];
-  $('#swatches').replaceChildren(...colors.map((c) => h('button', {
+
+  // dernière pastille : n'importe quelle couleur (sélecteur libre). Elle prend la couleur choisie.
+  const custom = !SWATCHES.includes(draft.color);
+  const input = h('input', { type: 'color', value: draft.color, 'aria-label': 'Choisir une autre couleur' });
+  const customSw = h('label', { class: 'sw custom' + (custom ? ' on' : ''), title: 'Autre couleur…', style: custom ? `background:${draft.color}` : '' }, input);
+  input.addEventListener('input', () => { // pendant le choix : on met à jour sans reconstruire (sinon le sélecteur se refermerait)
+    draft.color = input.value;
+    paintTierPreview();
+    $('#swatches').querySelectorAll('.sw').forEach((b) => b.classList.remove('on'));
+    customSw.classList.add('on');
+    customSw.style.background = draft.color;
+  });
+  input.addEventListener('change', renderTierDialog);
+
+  $('#swatches').replaceChildren(...SWATCHES.map((c) => h('button', {
     class: 'sw' + (c === draft.color ? ' on' : ''), style: `background:${c}`, type: 'button', 'aria-label': c,
     onclick: () => { draft.color = c; renderTierDialog(); },
-  })));
+  })), customSw);
 }
 
 function openTier(id) {
