@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Proposition H</title>
+<link rel="stylesheet" href="base.css"><link rel="stylesheet" href="cork.css">
+<style>
+/* H : comme G, et la couleur coule aussi dans le fond des lignes (teinte verticale continue, plus aucune séparation) */
+.board { position: relative; border-radius: 16px; overflow: hidden; border: 2px solid var(--edge); box-shadow: 0 5px 0 rgba(0,0,0,.4); background: #1c1f27; }
+.board::before { content: ''; position: absolute; inset: 0; background: var(--tint); }
+.board::after { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 104px; background: var(--lab-grad); }
+.board .row { border: 0; border-radius: 0; margin: 0; box-shadow: none; background: transparent; z-index: 1; }
+.row .lab { flex: 0 0 104px; display: flex; align-items: center; justify-content: center; font: 800 52px 'Baloo 2', sans-serif; position: relative; text-shadow: 0 2px 0 rgba(0,0,0,.15); }
+.row .cells { z-index: 1; }
+</style></head><body>
+<script src="mock.js"></script><script src="common.js"></script>
+<div class="wrap">
+  <h1>Mes animés préférés</h1><div class="sub">17 animés · 5 tiers</div>
+  <div class="board" id="rows"></div>
+  <div class="cork" id="pool"><div class="note">Non classé</div></div>
+  <span class="btn">+ Ajouter des animés</span>
+</div>
+<script>
+const board = document.getElementById('rows');
+const stops = (fn) => TIERS.map((t, i) => `${fn(t)} ${Math.round((i + 0.5) / TIERS.length * 100)}%`).join(', ');
+board.style.setProperty('--lab-grad', `linear-gradient(180deg, ${stops((t) => t.c1)})`);
+board.style.setProperty('--tint', `linear-gradient(180deg, ${stops((t) => `color-mix(in srgb, ${t.c1} 22%, #1c1f27)`)})`);
+board.innerHTML = rowsHtml((t) => `<div class="row"><div class="lab" style="color:${t.ink}">${t.n}</div><div class="cells">${t.items.map((i) => poster(i)).join('')}</div></div>`);
+document.getElementById('pool').insertAdjacentHTML('beforeend', POOL.map((i) => `<div class="pol">${poster(i)}</div>`).join(''));
+</script></body></html>
