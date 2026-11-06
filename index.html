@@ -8,11 +8,13 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Inter:wght@400;600;700&display=swap">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <header class="top">
-  <h1 class="brand">Ranku</h1>
+  <h1 class="brand"><span>Ran</span><b>ku</b></h1>
   <select id="listSelect" aria-label="Tier list"></select>
   <button id="btnMenu" class="icon-btn" aria-label="Menu">⋯</button>
 </header>
@@ -39,6 +41,7 @@
   <form method="dialog" id="formTier">
     <h2>Modifier le tier</h2>
     <label>Nom <input id="tierName" maxlength="20"></label>
+    <label>Légende <input id="tierDesc" maxlength="24" placeholder="facultatif"></label>
     <label>Couleur <input id="tierColor" type="color"></label>
     <div class="row">
       <button type="button" id="tierUp" class="ghost">↑ Monter</button>

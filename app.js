@@ -34,12 +34,22 @@ function toast(msg) {
 
 // ---------- État + sauvegarde locale ----------
 const STORE = 'tierlist-anime-v1';
-const DEFAULT_TIERS = [['S', '#ff5d73'], ['A', '#ff9f43'], ['B', '#ffd24d'], ['C', '#7bd88f'], ['D', '#5fb0ff']];
+const DEFAULT_TIERS = [
+  ['S', '#ff7aa2', 'Chef-d’œuvre'], ['A', '#ffb83d', 'Excellent'], ['B', '#ffe066', 'Bien'], ['C', '#4ade9f', 'Moyen'], ['D', '#6ea0ff', 'Bof'],
+];
+const OLD_COLORS = { '#ff5d73': '#ff7aa2', '#ff9f43': '#ffb83d', '#ffd24d': '#ffe066', '#7bd88f': '#4ade9f', '#5fb0ff': '#6ea0ff' };
+
+// Teinte plus sombre d'une couleur (pour le dégradé de la lettre).
+const shade = (hex, k) => {
+  const n = parseInt(hex.slice(1), 16);
+  const f = (v) => Math.max(0, Math.min(255, Math.round(v * (1 + k)))).toString(16).padStart(2, '0');
+  return '#' + f(n >> 16) + f((n >> 8) & 255) + f(n & 255);
+};
 
 const newList = (name) => ({
   id: uid(),
   name,
-  tiers: DEFAULT_TIERS.map(([n, c]) => ({ id: uid(), name: n, color: c, items: [] })),
+  tiers: DEFAULT_TIERS.map(([n, c, d]) => ({ id: uid(), name: n, color: c, desc: d, items: [] })),
   pool: [],
   items: {}, // clé -> { t: titre, i: image }
 });
@@ -49,6 +59,13 @@ try { db = JSON.parse(localStorage.getItem(STORE)); } catch { db = null; }
 if (!db || !Array.isArray(db.lists) || !db.lists.length) {
   const l = newList('Ma tier list');
   db = { v: 1, cur: l.id, lists: [l] };
+}
+// Mise à jour des anciennes listes : nouvelles couleurs par défaut et légendes (S, A, B, C, D).
+for (const l of db.lists) {
+  for (const t of l.tiers) {
+    if (OLD_COLORS[t.color]) t.color = OLD_COLORS[t.color];
+    if (t.desc === undefined) t.desc = (DEFAULT_TIERS.find((d) => d[0] === t.name) || [])[2] || '';
+  }
 }
 const save = () => { try { localStorage.setItem(STORE, JSON.stringify(db)); } catch { toast('Sauvegarde impossible (stockage plein ?)'); } };
 const cur = () => db.lists.find((l) => l.id === db.cur) || db.lists[0];
@@ -63,7 +80,8 @@ const imgUrl = (i) => (i.startsWith('http') ? i : imgBase + i);
 function card(list, key) {
   const it = list.items[key];
   return h('button', { class: 'card' + (key === sel ? ' sel' : ''), dataset: { k: key }, title: it.t, type: 'button' },
-    h('img', { src: imgUrl(it.i), alt: it.t, loading: 'lazy', draggable: 'false' }));
+    h('img', { src: imgUrl(it.i), alt: it.t, loading: 'lazy', draggable: 'false' }),
+    h('span', { class: 'tt' }, it.t));
 }
 
 function render() {
@@ -77,13 +95,17 @@ function render() {
   const board = $('#board');
   board.replaceChildren();
 
-  board.append(h('div', { class: 'tiers' }, list.tiers.map((t) =>
-    h('div', { class: 'tier' },
-      h('button', { class: 'tier-label' + (t.name.length > 3 ? ' long' : ''), style: `background:${t.color};color:${textOn(t.color)}`, dataset: { tier: t.id }, type: 'button' }, t.name),
+  // trait coloré continu sur le bord gauche : un seul dégradé de bas en haut des tiers
+  const bar = `linear-gradient(180deg, ${list.tiers.map((t, i) => `${t.color} ${Math.round(((i + 0.5) / list.tiers.length) * 100)}%`).join(', ')})`;
+  board.append(h('div', { class: 'tiers', style: `--bar:${bar}` }, list.tiers.map((t) =>
+    h('div', { class: 'tier', style: `--c1:${t.color};--c2:${shade(t.color, -0.2)}` },
+      h('button', { class: 'tier-label' + (t.name.length > 3 ? ' long' : ''), dataset: { tier: t.id }, type: 'button' },
+        h('b', {}, t.name), t.desc ? h('small', {}, t.desc) : null),
       h('div', { class: 'zone', dataset: { zone: t.id } }, t.items.filter((k) => list.items[k]).map((k) => card(list, k)))))));
   board.append(
-    h('div', { class: 'pool-head' }, h('b', {}, 'Non classé'), h('span', {}, `${list.pool.length} animé${list.pool.length > 1 ? 's' : ''}`)),
-    h('div', { class: 'pool' }, h('div', { class: 'zone', dataset: { zone: 'pool' } }, list.pool.filter((k) => list.items[k]).map((k) => card(list, k)))));
+    h('div', { class: 'cork' },
+      h('div', { class: 'note' }, 'Non classé'),
+      h('div', { class: 'zone', dataset: { zone: 'pool' } }, list.pool.filter((k) => list.items[k]).map((k) => card(list, k)))));
 
   board.querySelectorAll('.zone').forEach((z) => {
     sortables.push(new Sortable(z, {
@@ -163,6 +185,7 @@ function openTier(id) {
   editTier = id;
   const t = cur().tiers.find((x) => x.id === id);
   $('#tierName').value = t.name;
+  $('#tierDesc').value = t.desc || '';
   $('#tierColor').value = t.color;
   $('#dlgTier').showModal();
 }
@@ -170,6 +193,7 @@ function applyTierEdit() {
   const t = cur().tiers.find((x) => x.id === editTier);
   if (!t) return;
   t.name = $('#tierName').value.trim() || t.name;
+  t.desc = $('#tierDesc').value.trim();
   t.color = $('#tierColor').value;
 }
 $('#dlgTier').addEventListener('close', () => { applyTierEdit(); save(); render(); });
@@ -194,7 +218,7 @@ $('#tierDel').onclick = () => {
   $('#dlgTier').close();
 };
 $('#btnAddTier').onclick = () => {
-  cur().tiers.push({ id: uid(), name: 'Nouveau', color: '#b794f6', items: [] });
+  cur().tiers.push({ id: uid(), name: 'Nouveau', color: '#b794f6', desc: '', items: [] });
   save(); render();
 };
 
