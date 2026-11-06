@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Variantes du design sobre</title>
+<link rel="stylesheet" href="base.css">
+<style>
+body { overflow: auto; }
+.wrap { max-width: 1000px; margin: 0 auto; padding: 24px 16px 60px; }
+h1 { margin: 0 0 4px; } .sub { color: #9aa0b4; margin-bottom: 24px; }
+.opt { margin: 0 0 38px; }
+.opt h2 { margin: 0; font: 800 22px 'Baloo 2', sans-serif; } .opt > p { margin: 2px 0 12px; color: #9aa0b4; font-size: 13px; }
+.stage { padding: 16px; border-radius: 16px; background: #23262f; border: 2px solid #12141b; }
+.poster { width: 76px; height: 108px; object-fit: cover; border-radius: 10px; border: 2px solid #0e1016; box-shadow: 0 3px 0 rgba(0,0,0,.45); display: block; flex: none; }
+.items { display: flex; flex-wrap: wrap; gap: 6px; align-content: flex-start; flex: 1; }
+.name { font: 800 52px/1 'Baloo 2', sans-serif; color: var(--c1); }
+.leg { font: 600 11px/1.2 Inter, sans-serif; text-align: center; margin-top: 2px; color: #8f98b8; }
+.lab { flex: 0 0 100px; text-align: center; }
+
+/* 1 — Trait épais + relief : lignes séparées, bords arrondis, petit relief dessous */
+.v1 .tl { display: flex; flex-direction: column; gap: 10px; }
+.v1 .row { display: flex; align-items: center; gap: 12px; padding: 8px 12px 8px 0; min-height: 124px; border-radius: 14px; background: #2a2e3a; border: 2px solid #0f1117; box-shadow: 0 4px 0 #0f1117; overflow: hidden; }
+.v1 .row::before { content: ''; align-self: stretch; width: 14px; background: linear-gradient(180deg, var(--c1), var(--c2)); flex: none; border-right: 2px solid #0f1117; }
+
+/* 2 — Bloc continu : tiers collés dans un seul bloc, trait de couleur par tier */
+.v2 .tl { border-radius: 16px; overflow: hidden; border: 2px solid #0f1117; box-shadow: 0 5px 0 #0f1117; background: #23262f; }
+.v2 .row { display: flex; align-items: center; gap: 12px; padding: 8px 12px 8px 0; min-height: 124px; border-top: 2px solid #0f1117; }
+.v2 .row:first-child { border-top: 0; }
+.v2 .row::before { content: ''; align-self: stretch; width: 12px; background: var(--c1); flex: none; margin: -8px 0; }
+
+/* 3 — Lettre dans un petit carré teinté */
+.v3 .tl { display: flex; flex-direction: column; gap: 8px; }
+.v3 .row { display: flex; align-items: center; gap: 14px; padding: 8px 12px 8px 12px; min-height: 124px; border-radius: 14px; background: #23262f; border: 2px solid #0f1117; }
+.v3 .lab { flex: 0 0 auto; width: 84px; display: flex; flex-direction: column; align-items: center; }
+.v3 .name { width: 66px; height: 66px; display: flex; align-items: center; justify-content: center; font-size: 42px; border-radius: 16px; background: color-mix(in srgb, var(--c1) 18%, #23262f); border: 2px solid var(--c1); box-shadow: 0 3px 0 var(--c2); }
+
+/* 4 — Affiches cerclées de la couleur du tier */
+.v4 .tl { display: flex; flex-direction: column; gap: 8px; }
+.v4 .row { display: flex; align-items: center; gap: 12px; padding: 8px 12px 8px 0; min-height: 124px; border-radius: 14px; background: #23262f; border: 2px solid #0f1117; overflow: hidden; }
+.v4 .row::before { content: ''; align-self: stretch; width: 10px; background: var(--c1); flex: none; }
+.v4 .poster { border-color: var(--c1); box-shadow: 0 3px 0 rgba(0,0,0,.45), 0 0 0 1px #0f1117; }
+
+/* 5 — Fond légèrement teinté, à plat */
+.v5 .tl { display: flex; flex-direction: column; gap: 8px; }
+.v5 .row { display: flex; align-items: center; gap: 12px; padding: 8px 12px 8px 0; min-height: 124px; border-radius: 14px; background: color-mix(in srgb, var(--c1) 9%, #23262f); border: 2px solid #0f1117; overflow: hidden; }
+.v5 .row::before { content: ''; align-self: stretch; width: 10px; background: var(--c1); flex: none; }
+</style></head><body>
+<script src="mock.js"></script>
+<div class="wrap">
+  <h1>Variantes du design sobre</h1>
+  <div class="sub">Cinq versions proches de la 5, sans lueur : même fond sombre, trait de couleur et lettre colorée.</div>
+  <div id="opts"></div>
+</div>
+<script>
+const T = [
+  { n: 'S', d: 'Chef-d’œuvre', c1: '#ff7aa2', c2: '#ec4899', it: [0, 1, 2] },
+  { n: 'A', d: 'Excellent', c1: '#ffb83d', c2: '#f59e0b', it: [3, 4, 5, 6] },
+  { n: 'B', d: 'Bien', c1: '#ffe066', c2: '#facc15', it: [7, 8, 9, 10, 11] },
+  { n: 'C', d: 'Moyen', c1: '#4ade9f', c2: '#10b981', it: [12, 13] },
+  { n: 'D', d: 'Bof', c1: '#6ea0ff', c2: '#3b82f6', it: [14] },
+];
+const OPTS = [
+  ['v1', '1 · Trait épais et relief', 'Le trait de couleur est plus large avec un contour sombre, et chaque ligne a un petit relief dessous, comme les touches du site.'],
+  ['v2', '2 · Bloc continu', 'Les tiers sont collés dans un seul bloc arrondi (comme avant), séparés par un trait sombre, avec un trait de couleur par tier.'],
+  ['v3', '3 · Lettre dans un carré', 'La lettre est dans un petit carré teinté à bord coloré : elle ressort davantage, tout en restant discrète.'],
+  ['v4', '4 · Affiches cerclées', 'Les affiches ont un bord de la couleur de leur tier : la couleur se voit même sur les affiches sombres.'],
+  ['v5', '5 · Fond teinté', 'Le fond de chaque ligne prend une très légère teinte du tier, à plat (sans dégradé ni lueur).'],
+];
+const poster = (i) => `<img class="poster" src="${MOCK[i].i}" alt="">`;
+document.getElementById('opts').innerHTML = OPTS.map(([c, t, p]) => `
+  <section class="opt ${c}"><h2>${t}</h2><p>${p}</p>
+  <div class="stage"><div class="tl">${T.map((x) => `
+    <div class="row" style="--c1:${x.c1};--c2:${x.c2}">
+      <div class="lab"><div class="name">${x.n}</div><div class="leg">${x.d}</div></div>
+      <div class="items">${x.it.map(poster).join('')}</div></div>`).join('')}</div></div></section>`).join('');
+</script></body></html>
