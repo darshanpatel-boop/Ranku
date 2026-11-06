@@ -36,7 +36,7 @@ function mount(opt) {
   function overlay(m) {
     const a = added.has(m.n);
     if (mode === 'veil') return `<span class="ov"><span class="plus">${a ? '✓' : '+'}</span></span>`;
-    if (mode === 'bar') return `<span class="ov"><span class="abar">${a ? '<i class="ic dot"></i><span class="t1">Ajouté</span><span class="t2">Retirer</span>' : '<i class="ic">+</i><span class="tx">Ajouter</span>'}</span></span>`;
+    if (mode === 'bar') return `<span class="ov"><span class="abar">${a ? '<i class="ic pt"></i><span class="t1">Ajouté</span><span class="t2">Retirer</span>' : '<i class="ic">+</i><span class="tx">Ajouter</span>'}</span></span>`;
     return '';
   }
   function draw(skeleton) {
@@ -92,6 +92,9 @@ function mount(opt) {
   });
   $('grid').addEventListener('click', (e) => { const b = e.target.closest('.it'); if (b) toggle(+b.dataset.n); });
   $('toast').addEventListener('click', (e) => { if (e.target.id === 'undo' && undo != null) { added.delete(undo); $('toast').classList.remove('show'); draw(); } });
+  const qs = new URLSearchParams(location.search);
+  if (qs.get('q')) $('q').value = qs.get('q');
+  if (qs.get('s') && opt.states) document.querySelector('.sw [data-s="' + qs.get('s') + '"]')?.click();
   $('q').focus();
   draw();
 }

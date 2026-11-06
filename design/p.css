@@ -57,7 +57,7 @@ body { min-height: 100vh; background: #23262f; overflow: hidden; }
 /* — Mode « barre » : 5 FORMES de bouton (pas seulement des couleurs) — */
 .abar { display: flex; align-items: center; justify-content: center; gap: 7px; font: 700 13px Inter, sans-serif; cursor: pointer; white-space: nowrap; transition: background .15s, color .15s, transform .15s, box-shadow .15s; }
 .abar .ic { display: none; width: 18px; height: 18px; border-radius: 50%; align-items: center; justify-content: center; font-style: normal; font-weight: 800; flex: none; }
-.abar .ic.dot::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.abar .ic.pt::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
 .abar .t2 { display: none; }
 .m-bar .ov { position: absolute; left: 0; right: 0; bottom: 0; }
 .m-bar .it.added .pic img { filter: brightness(.72); }
@@ -69,7 +69,7 @@ body { min-height: 100vh; background: #23262f; overflow: hidden; }
 .s-strip .ov { left: 2px; right: 2px; bottom: 2px; }
 .s-strip .abar { padding: 11px 0; border-radius: 0 0 11px 11px; background: rgba(10,14,28,.84); color: #fff; border-top: 1px solid rgba(255,255,255,.14); backdrop-filter: blur(6px); }
 .s-strip .abar .ic { display: inline; width: auto; height: auto; font-size: 15px; }
-.s-strip .ic.dot { display: none; }
+.s-strip .ic.pt { display: none; }
 .s-strip .it:hover .abar, .s-strip .it.added .abar { background: #fff; color: #1a1d27; }
 
 /* 2 — Pilule : flotte à cheval sur le bord bas de l'affiche */
@@ -77,7 +77,7 @@ body { min-height: 100vh; background: #23262f; overflow: hidden; }
 .s-float .it b { margin-top: 24px; }
 .s-float .abar { padding: 9px 18px; border-radius: 99px; background: #fff; color: #1a1d27; box-shadow: 0 6px 14px rgba(0,0,0,.45); }
 .s-float .abar .ic { display: inline; width: auto; height: auto; font-size: 15px; }
-.s-float .ic.dot { display: none; }
+.s-float .ic.pt { display: none; }
 .s-float .it:hover .abar { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(0,0,0,.5); }
 .s-float .it.added .abar { background: linear-gradient(135deg, #7c5cff, #4f8cff); color: #fff; }
 
@@ -92,7 +92,7 @@ body { min-height: 100vh; background: #23262f; overflow: hidden; }
 .s-under .ov { position: static; margin-top: 10px; }
 .s-under .abar { padding: 9px 0; border-radius: 10px; border: 2px solid #4a5688; color: #cfd8ff; background: transparent; }
 .s-under .abar .ic { display: inline; width: auto; height: auto; font-size: 15px; }
-.s-under .ic.dot { display: none; }
+.s-under .ic.pt { display: none; }
 .s-under .it:hover .abar { border-color: #7fb0ff; color: #fff; background: rgba(79,140,255,.16); }
 .s-under .it.added .abar { border-color: transparent; background: #2b3558; color: #9fb4ff; }
 
