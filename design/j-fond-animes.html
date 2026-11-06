@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Proposition J</title>
+<link rel="stylesheet" href="base.css"><link rel="stylesheet" href="cork.css">
+<style>
+/* J : colonne des lettres sombre et neutre ; le dégradé vit dans la zone des affiches et passe d'un tier au suivant */
+.board { border-radius: 16px; overflow: hidden; border: 2px solid var(--edge); box-shadow: 0 5px 0 rgba(0,0,0,.4); background: #1c1f27; }
+.board .row { border: 0; border-radius: 0; margin: 0; box-shadow: none; overflow: visible; background: transparent; }
+.row .lab { flex: 0 0 96px; display: flex; align-items: center; justify-content: center; font: 800 56px 'Baloo 2', sans-serif; background: #171a21; border-right: 1px solid rgba(255,255,255,.06); }
+.row .lab span { background: linear-gradient(135deg, var(--c1), var(--c2)); -webkit-background-clip: text; background-clip: text; color: transparent; filter: drop-shadow(0 2px 0 rgba(0,0,0,.4)); }
+.row .cells { background: linear-gradient(180deg, var(--top), var(--mid) 50%, var(--bot)); }
+</style></head><body>
+<script src="mock.js"></script><script src="common.js"></script>
+<div class="wrap">
+  <h1>Mes animés préférés</h1><div class="sub">17 animés · 5 tiers</div>
+  <div class="board" id="rows"></div>
+  <div class="cork" id="pool"><div class="note">Non classé</div></div>
+  <span class="btn">+ Ajouter des animés</span>
+</div>
+<script>
+// intensité du fond (en %), réglable : ?p=40
+const P = Number(new URLSearchParams(location.search).get('p')) || 24;
+const tint = (c) => `color-mix(in srgb, ${c} ${P}%, #1c1f27)`;
+const mix = (a, b) => `color-mix(in srgb, ${a}, ${b})`;
+document.getElementById('rows').innerHTML = TIERS.map((t, i) => {
+  const me = tint(t.c1);
+  const prev = i ? tint(TIERS[i - 1].c1) : me;
+  const next = i < TIERS.length - 1 ? tint(TIERS[i + 1].c1) : me;
+  return `<div class="row" style="--c1:${t.c1};--c2:${t.c2};--top:${mix(prev, me)};--mid:${me};--bot:${mix(me, next)}"><div class="lab"><span>${t.n}</span></div><div class="cells">${t.items.map((k) => poster(k)).join('')}</div></div>`;
+}).join('');
+document.getElementById('pool').insertAdjacentHTML('beforeend', POOL.map((i) => `<div class="pol">${poster(i)}</div>`).join(''));
+</script></body></html>
