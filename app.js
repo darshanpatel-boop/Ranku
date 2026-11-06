@@ -77,7 +77,7 @@ let lastDrag = 0; // pour ne pas ouvrir la fiche juste après un glisser-dépose
 let freshKey = null, freshTier = null; // pour animer ce qui vient d'être ajouté
 let imgBase = 'https://cdn.myanimelist.net/images/anime/';
 
-const imgUrl = (i) => (i.startsWith('http') ? i : imgBase + i);
+const imgUrl = (i) => (i.startsWith('http') || i.startsWith('data:') ? i : imgBase + i);
 
 function card(list, key) {
   const it = list.items[key];
@@ -676,6 +676,7 @@ function renderFiche() {
   if (!it) { ficheKey = null; if ($('#dlgFiche').open) $('#dlgFiche').close(); return; }
   $('#fiImg').src = imgUrl(it.i);
   $('#fiTitle').textContent = it.t;
+  $('#fiReset').hidden = it.i0 === undefined;
   const box = $('#fiList');
   const gid = it.m ? gidOf(it.m[0]) : gidOf(ficheKey);
   const rows = animeData && gid ? groupRows(gid) : [];
@@ -708,7 +709,7 @@ function fiAct(act, k) {
   if (act === 'toggle') {
     if (!it.m.includes(k)) it.m.push(k);
   } else if (act === 'cover') {
-    it.i = r[3];
+    it.i = r[3]; delete it.i0;
   } else if (act === 'split') {
     it.m = it.m.filter((x) => x !== k);
     list.items[k] = { t: r[0], i: r[3] };
@@ -1218,6 +1219,61 @@ async function runChars() {
   }
 }
 $('#chClose').onclick = () => $('#dlgChars').close();
+
+// ---------- Changer l'image d'une carte (depuis l'appareil ou une adresse), retour à l'image d'origine ----------
+const MAX_SIDE = 450; // les images choisies sont réduites : elles sont enregistrées dans le navigateur
+
+function fileToDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const im = new Image();
+    im.onload = () => {
+      const k = Math.min(1, MAX_SIDE / Math.max(im.width, im.height));
+      const cv = document.createElement('canvas');
+      cv.width = Math.max(1, Math.round(im.width * k)); cv.height = Math.max(1, Math.round(im.height * k));
+      cv.getContext('2d').drawImage(im, 0, 0, cv.width, cv.height);
+      URL.revokeObjectURL(url);
+      resolve(cv.toDataURL('image/jpeg', 0.86));
+    };
+    im.onerror = () => { URL.revokeObjectURL(url); reject(new Error('image')); };
+    im.src = url;
+  });
+}
+
+function setCardImage(key, src) {
+  const it = cur().items[key];
+  if (!it) return;
+  if (it.i0 === undefined) it.i0 = it.i; // on garde l'image d'origine
+  it.i = src;
+  save(); render(); renderFiche();
+}
+
+$('#fiPick').onclick = () => $('#fiFile').click();
+$('#fiFile').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  e.target.value = '';
+  if (!file || !ficheKey) return;
+  try { setCardImage(ficheKey, await fileToDataUrl(file)); toast('Image changée'); }
+  catch { toast('Cette image n’a pas pu être lue'); }
+});
+
+$('#fiLinkBtn').onclick = () => { $('#fiLink').hidden = !$('#fiLink').hidden; if (!$('#fiLink').hidden) $('#fiUrl').focus(); };
+$('#fiUrlOk').onclick = async () => {
+  const url = $('#fiUrl').value.trim();
+  if (!/^https?:\/\//i.test(url) || !ficheKey) { toast('Colle l’adresse complète d’une image (https://…)'); return; }
+  const ok = await new Promise((r) => { const im = new Image(); im.crossOrigin = 'anonymous'; im.onload = () => r(true); im.onerror = () => r(false); im.src = url; });
+  if (!ok) { toast('Ce site n’autorise pas l’image : télécharge-la puis choisis-la depuis ton appareil'); return; }
+  setCardImage(ficheKey, url);
+  $('#fiUrl').value = ''; $('#fiLink').hidden = true;
+  toast('Image changée');
+};
+$('#fiReset').onclick = () => {
+  const it = cur().items[ficheKey];
+  if (!it || it.i0 === undefined) return;
+  it.i = it.i0; delete it.i0;
+  save(); render(); renderFiche();
+  toast('Image d’origine remise');
+};
 
 // ---------- Démarrage ----------
 document.body.classList.add('boot'); // animation d'arrivée, retirée ensuite pour ne pas se rejouer

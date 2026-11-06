@@ -434,3 +434,9 @@ button.danger { background: #3a2328; color: #ff9a9a; border: 2px solid var(--lin
 .chip .ty { display: inline-flex; margin-right: 7px; opacity: .7; }
 .chip .ty svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2.4; stroke-linecap: round; }
 .sr-meta { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; }
+
+/* changer l'image d'une carte */
+.fi-img { display: flex; flex-wrap: wrap; gap: 8px; padding: 6px 18px 0; }
+.fi-img button[hidden], .fi-link[hidden] { display: none; }
+.fi-link { display: flex; gap: 8px; padding: 8px 18px 0; }
+.fi-link input { flex: 1; min-width: 0; background: var(--panel2); border: 0; border-radius: 10px; padding: 9px 12px; color: var(--text); }
