@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Proposition I</title>
+<link rel="stylesheet" href="base.css"><link rel="stylesheet" href="cork.css">
+<style>
+/* I : base E (sans bloc), tiers collés dans un seul bloc, la lueur de chaque tier se fond dans le suivant */
+.board { position: relative; border-radius: 16px; overflow: hidden; border: 2px solid var(--edge); box-shadow: 0 5px 0 rgba(0,0,0,.4); background: #1c1f27; }
+.board::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 6px; background: var(--bar); z-index: 2; }
+.board .row { border: 0; border-radius: 0; margin: 0; box-shadow: none; overflow: visible; background: radial-gradient(ellipse 60% 120% at 0% 50%, color-mix(in srgb, var(--c1) 36%, transparent), transparent 72%); }
+.board .row::after { content: attr(data-n); position: absolute; right: 10px; bottom: -34px; font: 800 170px/1 'Baloo 2', sans-serif; color: var(--c1); opacity: .09; pointer-events: none; }
+.board .row + .row::before { content: ''; position: absolute; left: 6px; right: 0; top: 0; height: 1px; background: linear-gradient(90deg, rgba(255,255,255,.14), transparent 70%); }
+.row .lab { flex: 0 0 96px; display: flex; align-items: center; justify-content: center; font: 800 58px 'Baloo 2', sans-serif; background: linear-gradient(135deg, var(--c1), var(--c2)); -webkit-background-clip: text; background-clip: text; color: transparent; padding-left: 6px; filter: drop-shadow(0 2px 0 rgba(0,0,0,.35)); }
+.row .cells { z-index: 1; }
+</style></head><body>
+<script src="mock.js"></script><script src="common.js"></script>
+<div class="wrap">
+  <h1>Mes animés préférés</h1><div class="sub">17 animés · 5 tiers</div>
+  <div class="board" id="rows"></div>
+  <div class="cork" id="pool"><div class="note">Non classé</div></div>
+  <span class="btn">+ Ajouter des animés</span>
+</div>
+<script>
+const board = document.getElementById('rows');
+// trait coloré sur le bord gauche : un seul dégradé continu S→D
+board.style.setProperty('--bar', `linear-gradient(180deg, ${TIERS.map((t, i) => `${t.c1} ${Math.round((i + 0.5) / TIERS.length * 100)}%`).join(', ')})`);
+board.innerHTML = rowsHtml((t) => `<div class="row" data-n="${t.n}" style="--c1:${t.c1};--c2:${t.c2}"><div class="lab">${t.n}</div><div class="cells">${t.items.map((i) => poster(i)).join('')}</div></div>`);
+document.getElementById('pool').insertAdjacentHTML('beforeend', POOL.map((i) => `<div class="pol">${poster(i)}</div>`).join(''));
+</script></body></html>
