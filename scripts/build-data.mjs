@@ -35,6 +35,7 @@ const latin = (s) => /^[\p{Script=Latin}\p{N}\p{P}\p{Zs}]+$/u.test(s);
 const normName = (x) => x.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
 
 const rows = [];
+const kept = []; // entrée brute de chaque ligne, pour retrouver ses relations
 for (const a of db.data) {
   if (!TYPES.includes(a.type)) continue;
   const anilist = idFrom(a.sources, 'anilist.co');
@@ -43,7 +44,8 @@ for (const a of db.data) {
   const pic = a.picture.startsWith(MAL_IMG) ? a.picture.slice(MAL_IMG.length) : a.picture;
   const seen = new Set([normName(a.title)]);
   const syn = a.synonyms.filter(latin).filter((x) => { const k = normName(x); return k && !seen.has(k) && seen.add(k); }).slice(0, 40);
-  // [titre, type, année, image, idAniList, idMAL, synonymes, score]
+  // [titre, type, année, image, idAniList, idMAL, synonymes, score, licence]
+  kept.push(a);
   rows.push([
     a.title,
     TYPES.indexOf(a.type),
@@ -53,8 +55,71 @@ for (const a of db.data) {
     mal,
     syn,
     a.score?.arithmeticMean ? Math.round(a.score.arithmeticMean * 100) / 100 : 0,
+    0,
   ]);
 }
+
+// ---------- Licences : on relie les animés « liés » de la base (séries, films, OVA, ONA uniquement ; les spéciaux
+// servent souvent de pont entre deux franchises sans rapport). Corrections à la main dans data-manual/cuts.json.
+const keyOf = (r) => (r[4] ? 'a' + r[4] : 'm' + r[5]);
+const rowOfKey = new Map(rows.map((r, i) => [keyOf(r), i]));
+const rowOfUrl = new Map();
+kept.forEach((a, i) => a.sources.forEach((u) => rowOfUrl.set(u, i)));
+
+const manual = existsSync('data-manual/cuts.json') ? JSON.parse(readFileSync('data-manual/cuts.json', 'utf8')) : {};
+const edgeId = (i, j) => (i < j ? i + '-' + j : j + '-' + i);
+const cuts = new Set((manual.cuts || []).map(([x, y]) => edgeId(rowOfKey.get(x), rowOfKey.get(y))));
+const solo = new Set((manual.solo || []).map((k) => rowOfKey.get(k)));
+
+// Deux animés ne sont fusionnés que si leurs titres se ressemblent : un nom commence comme l'autre (« Pokemon » / « Pokemon XY »)
+// ou ils partagent leurs deux premiers mots. Ça coupe les ponts entre franchises sans rapport.
+const STOP = /^(the|a|an|l|le|la|les|un|une|de|des)\s+/;
+const namesOf = (i) => [rows[i][0], ...rows[i][6].slice(0, 10)].map((x) => normName(x).replace(STOP, '')).filter((x) => x.length >= 4);
+const nameCache = rows.map((_, i) => namesOf(i));
+const resembles = (i, j) => {
+  for (const a of nameCache[i]) for (const b of nameCache[j]) {
+    const [short, long] = a.length <= b.length ? [a, b] : [b, a];
+    if (long === short || long.startsWith(short + ' ')) return true;
+    const ta = a.split(' '), tb = b.split(' ');
+    if (ta.length >= 2 && tb.length >= 2 && ta[0] === tb[0] && ta[1] === tb[1]) return true;
+  }
+  return false;
+};
+const parent = rows.map((_, i) => i);
+const find = (i) => { while (parent[i] !== i) { parent[i] = parent[parent[i]]; i = parent[i]; } return i; };
+const union = (i, j) => { parent[find(i)] = find(j); };
+kept.forEach((a, i) => {
+  if (solo.has(i)) return;
+  for (const u of a.relatedAnime || []) {
+    const j = rowOfUrl.get(u);
+    if (j === undefined || j === i || solo.has(j) || cuts.has(edgeId(i, j)) || !resembles(i, j)) continue;
+    union(i, j);
+  }
+});
+for (const [x, y] of manual.join || []) union(rowOfKey.get(x), rowOfKey.get(y));
+
+const members = new Map();
+rows.forEach((_, i) => { const r = find(i); (members.get(r) || members.set(r, []).get(r)).push(i); });
+const TYPE_ORDER = [0, 1, 2, 3]; // TV, MOVIE, OVA, ONA
+const chrono = (i, j) => (rows[i][2] || 9999) - (rows[j][2] || 9999) || rows[i][1] - rows[j][1] || rows[i][0].localeCompare(rows[j][0]);
+const groups = {};
+let gid = 0;
+for (const list of [...members.values()].filter((l) => l.length > 1).sort((a, b) => b.length - a.length)) {
+  list.sort(chrono);
+  // jaquette : la vraie série TV la plus ancienne, sinon le plus ancien tout court
+  const rep = list.find((i) => rows[i][1] === 0) ?? list[0];
+  gid += 1;
+  groups[gid] = [rep, ...list.filter((i) => i !== rep)];
+  list.forEach((i) => { rows[i][8] = gid; });
+}
+
+// ---------- Rapport (court) pour repérer les fusions suspectes
+const sizes = Object.values(groups).map((g) => g.length);
+const bucket = (lo, hi) => sizes.filter((n) => n >= lo && n <= hi).length;
+console.log(`Licences : ${sizes.length} groupes (2 : ${bucket(2, 2)}, 3-5 : ${bucket(3, 5)}, 6-10 : ${bucket(6, 10)}, 11-20 : ${bucket(11, 20)}, 21+ : ${bucket(21, 9999)}) ; ${rows.filter((r) => r[8]).length} animés regroupés, ${rows.filter((r) => !r[8]).length} seuls`);
+console.log('Plus gros groupes :');
+Object.entries(groups).slice(0, 25).forEach(([id, g]) => console.log(`  #${id} ${String(g.length).padStart(3)} · ${rows[g[0]][0]}`));
+
 
 const out = JSON.stringify({
   source: 'anime-offline-database (manami-project), licence ODbL 1.0',
@@ -62,6 +127,7 @@ const out = JSON.stringify({
   imgBase: MAL_IMG,
   types: TYPES,
   rows,
+  groups, // identifiant de licence -> indices des lignes (le premier est la jaquette)
 });
 writeFileSync(OUT, out);
 console.log(`${db.data.length} entrées brutes -> ${rows.length} gardées`);
