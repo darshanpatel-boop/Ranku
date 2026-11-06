@@ -109,6 +109,7 @@ function render() {
     h('button', { class: 'add-tier', type: 'button' }, '＋ Ajouter un tier')));
   board.append(
     h('button', { class: 'add-anime', type: 'button' }, svgEl('<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>'), h('span', { class: 'aa-t' }, 'Rechercher un animé à ajouter…'), h('kbd', {}, '/'), h('span', { class: 'aa-b' }, 'Ajouter')),
+    h('div', { class: 'import-row' }, h('button', { class: 'import-btn', type: 'button' }, svgEl(IMPORT_ICON), 'Importer ma liste AniList')),
     h('div', { class: 'cork' },
       h('div', { class: 'note' }, 'Non classé'),
       h('div', { class: 'zone', dataset: { zone: 'pool' } }, list.pool.filter((k) => list.items[k]).map((k) => card(list, k)))));
@@ -153,6 +154,7 @@ function detach(list, key) {
 
 $('#board').addEventListener('click', (e) => {
   if (e.target.closest('.share-btn')) { openShare(); return; }
+  if (e.target.closest('.import-btn')) { openImport(); return; }
   const card = e.target.closest('.card');
   if (card && Date.now() - lastDrag > 300) { openFiche(card.dataset.k); return; }
   const mv = e.target.closest('[data-mv]');
@@ -894,6 +896,7 @@ function updateBar() {
 window.addEventListener('resize', updateBar);
 
 // ---------- Import de la liste AniList par pseudo (animés terminés) ----------
+const IMPORT_ICON = '<svg viewBox="0 0 24 24"><path d="M12 3v12M7.5 10.5L12 15l4.5-4.5M5 19h14"/></svg>';
 const ANI_COLLECTION_Q = 'query($u:String,$c:Int){MediaListCollection(userName:$u,type:ANIME,status:COMPLETED,chunk:$c,perChunk:500){hasNextChunk lists{entries{media{id idMal format seasonYear title{romaji english} coverImage{large}}}}}}';
 
 async function aniCollection(user, chunk) {
@@ -1002,7 +1005,6 @@ async function runImport() {
 $('#impGo').onclick = runImport;
 $('#impUser').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); $('#impGo').click(); } });
 $('#impClose').onclick = () => { $('#dlgImport').close(); $('#impGo').onclick = runImport; };
-$('#listImport').onclick = () => { $('#dlgList').close(); openImport(); };
 
 // ---------- Démarrage ----------
 document.body.classList.add('boot'); // animation d'arrivée, retirée ensuite pour ne pas se rejouer

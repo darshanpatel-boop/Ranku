@@ -404,3 +404,10 @@ button.danger { background: #3a2328; color: #ff9a9a; border: 2px solid var(--lin
 .imp-state { padding: 10px 12px; border-radius: 12px; font-size: 13px; background: #1c1f27; border: 2px solid var(--line); color: #c9cde0; }
 .imp-state.err { border-color: #7a2a30; color: #ffb4b4; background: #2e1d21; }
 .imp-state.ok { border-color: #1f6b4c; color: #a9f0cf; background: #1b2b26; }
+
+/* Importer : entre le bouton d'ajout d'animés et « Non classé » */
+.import-row { display: flex; margin-top: 12px; }
+.import-btn { display: inline-flex; align-items: center; gap: 8px; padding: 9px 16px; border-radius: 12px; background: var(--panel2); color: var(--text); border: 2px solid var(--line); box-shadow: 0 3px 0 var(--line); font: 700 14px 'Inter', sans-serif; }
+.import-btn svg { width: 17px; height: 17px; stroke: currentColor; fill: none; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+.import-btn:hover { background: #454b62; }
+.import-btn:active { translate: 0 2px; scale: 1; box-shadow: 0 1px 0 var(--line); }
