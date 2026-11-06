@@ -86,10 +86,24 @@
   </div>
 </dialog>
 
+<dialog id="dlgImport" class="modal">
+  <div class="imp-in">
+    <h2>Importer depuis AniList</h2>
+    <p class="imp-note">Entre ton pseudo AniList : tes animés <b>terminés</b> sont ajoutés dans une nouvelle liste, rangés dans « Non classé ». Les saisons d’une même licence sont regroupées. Ton profil doit être public.</p>
+    <label class="fld">Pseudo AniList <input id="impUser" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Ex. Josh"></label>
+    <div id="impState" class="imp-state" hidden></div>
+    <div class="foot">
+      <button class="ghost" id="impClose" type="button">Fermer</button>
+      <button class="primary" id="impGo" type="button">Importer</button>
+    </div>
+  </div>
+</dialog>
+
 <dialog id="dlgList" class="modal">
   <form method="dialog">
     <h2 id="listTitle">Nouvelle tier list</h2>
     <label class="fld">Nom <input id="listName" maxlength="30" autocomplete="off" placeholder="Ex. Mes animés 2025"></label>
+    <button type="button" id="listImport" class="ghost imp-btn">Importer ma liste AniList…</button>
     <div class="foot">
       <div class="only-edit"><button type="button" id="listDel" class="danger sm">Supprimer</button></div>
       <button value="ok" id="listOk" class="primary">Créer</button>

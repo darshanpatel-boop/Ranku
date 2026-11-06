@@ -394,3 +394,13 @@ button.danger { background: #3a2328; color: #ff9a9a; border: 2px solid var(--lin
 .tier-label b { background: none; color: var(--c1); filter: none; text-shadow: 0 2px 0 rgba(0,0,0,.3); }
 .tier-label small { color: #8f98b8; }
 .tier-preview { background-image: none; }
+
+/* ===== Import AniList ===== */
+.imp-btn { display: none; }
+.is-new .imp-btn { display: block; }
+.imp-in { padding: 18px; display: flex; flex-direction: column; gap: 10px; }
+.imp-in h2 { margin: 0 0 2px; font: 700 22px 'Baloo 2', sans-serif; }
+.imp-note { margin: 0; color: #9aa0b4; font-size: 13px; }
+.imp-state { padding: 10px 12px; border-radius: 12px; font-size: 13px; background: #1c1f27; border: 2px solid var(--line); color: #c9cde0; }
+.imp-state.err { border-color: #7a2a30; color: #ffb4b4; background: #2e1d21; }
+.imp-state.ok { border-color: #1f6b4c; color: #a9f0cf; background: #1b2b26; }

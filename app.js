@@ -334,6 +334,7 @@ $('#btnAbout').onclick = () => {
 let animeData = null;
 let index = null;
 let loading = null;
+let rowByAnilist = new Map(), rowByMal = new Map(); // idAniList / idMAL -> indice de ligne
 let rowByKey = new Map(); // clé (a<idAniList> / m<idMAL>) -> indice de ligne dans la base
 
 function loadData() {
@@ -342,6 +343,7 @@ function loadData() {
     animeData = d;
     imgBase = d.imgBase;
     rowByKey = new Map(d.rows.map((r, i) => [rowKey(r), i]));
+    d.rows.forEach((r, i) => { if (r[4]) rowByAnilist.set(r[4], i); if (r[5]) rowByMal.set(r[5], i); });
     // n : titre puis synonymes, normalisés ; h : tout concaténé pour le filtre rapide
     index = d.rows.map((r) => {
       const n = [r[0], ...r[6]].map((x) => ' ' + norm(x).replace(/^(l|le|la|les|the|un|une) /, '') + ' ');
@@ -890,6 +892,117 @@ function updateBar() {
   box.style.setProperty('--bar', `linear-gradient(180deg, ${stops.join(', ')})`);
 }
 window.addEventListener('resize', updateBar);
+
+// ---------- Import de la liste AniList par pseudo (animés terminés) ----------
+const ANI_COLLECTION_Q = 'query($u:String,$c:Int){MediaListCollection(userName:$u,type:ANIME,status:COMPLETED,chunk:$c,perChunk:500){hasNextChunk lists{entries{media{id idMal format seasonYear title{romaji english} coverImage{large}}}}}}';
+
+async function aniCollection(user, chunk) {
+  let res;
+  try {
+    res = await fetch('https://graphql.anilist.co', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({ query: ANI_COLLECTION_Q, variables: { u: user, c: chunk } }),
+    });
+  } catch { throw new Error('network'); }
+  if (res.status === 429) throw new Error('rate');
+  const j = await res.json().catch(() => null);
+  const err = j?.errors?.[0];
+  if (err) throw new Error(/private/i.test(err.message) ? 'private' : err.status === 404 ? 'notfound' : 'other');
+  if (!res.ok || !j?.data) throw new Error('network');
+  return j.data.MediaListCollection;
+}
+
+// récupère tous les animés terminés (par paquets de 500, avec une pause pour respecter la limite d'AniList)
+async function fetchCompleted(user, onProgress) {
+  const medias = [], seen = new Set();
+  for (let chunk = 1; chunk <= 20; chunk++) {
+    const col = await aniCollection(user, chunk);
+    for (const l of col.lists || []) for (const en of l.entries || []) {
+      const m = en.media;
+      if (m && !seen.has(m.id)) { seen.add(m.id); medias.push(m); }
+    }
+    onProgress?.(medias.length);
+    if (!col.hasNextChunk) break;
+    await new Promise((r) => setTimeout(r, 800));
+  }
+  return medias;
+}
+
+// transforme les animés AniList en cartes : une carte par licence (retrouvée grâce à la base), les autres séries TV telles quelles
+function buildImportedList(user, medias) {
+  const stats = { anime: medias.length, cards: 0, merged: 0, ignored: 0 };
+  const list = newList('AniList · ' + user);
+  const seen = new Set();
+  for (const m of medias) {
+    const i = rowByAnilist.get(m.id) ?? (m.idMal ? rowByMal.get(m.idMal) : undefined);
+    let key, item;
+    if (i !== undefined) {
+      const r = animeData.rows[i], gid = r[8];
+      if (gid) { const g = groupRows(gid), rep = g[0]; key = 'g' + rowKey(rep); item = { t: rep[0], i: rep[3], m: g.map(rowKey) }; }
+      else { key = rowKey(r); item = { t: r[0], i: r[3] }; }
+    } else if (m.format === 'TV' || m.format === 'TV_SHORT') { // série absente de la base (très récente)
+      key = 'a' + m.id; item = { t: m.title.english || m.title.romaji, i: m.coverImage.large };
+    } else { stats.ignored++; continue; } // film / OVA / ONA lié à une série : pas dans les licences
+    if (seen.has(key)) { stats.merged++; continue; }
+    seen.add(key); list.items[key] = item; list.pool.push(key);
+  }
+  stats.cards = list.pool.length;
+  return { list, stats };
+}
+
+function setImport(kind, text) {
+  const s = $('#impState');
+  s.hidden = !text;
+  s.className = 'imp-state ' + kind;
+  s.textContent = text || '';
+}
+
+function openImport() {
+  setImport('', '');
+  $('#impGo').disabled = false;
+  $('#impGo').textContent = 'Importer';
+  $('#dlgImport').showModal();
+  $('#impUser').focus();
+  loadData().catch(() => {});
+}
+
+const IMPORT_ERRORS = {
+  notfound: 'Ce pseudo n’existe pas sur AniList. Vérifie l’orthographe.',
+  private: 'Ce profil est privé : passe-le en public dans les réglages AniList pour l’importer.',
+  rate: 'AniList limite le nombre de requêtes. Réessaie dans une minute.',
+  network: 'Impossible de joindre AniList. Vérifie ta connexion et réessaie.',
+  other: 'AniList a renvoyé une erreur. Réessaie un peu plus tard.',
+};
+
+async function runImport() {
+  const user = $('#impUser').value.trim().replace(/^@/, '');
+  if (!user) { $('#impUser').focus(); return; }
+  $('#impGo').disabled = true;
+  setImport('load', 'Chargement de ta liste…');
+  try {
+    await loadData();
+    const medias = await fetchCompleted(user, (n) => setImport('load', `${n} animés récupérés…`));
+    if (!medias.length) { setImport('err', 'Aucun animé terminé trouvé pour ce pseudo.'); $('#impGo').disabled = false; return; }
+    const { list, stats } = buildImportedList(user, medias);
+    db.lists.push(list); db.cur = list.id;
+    save(); render();
+    const parts = [`${stats.anime} animés terminés → ${stats.cards} cartes dans « Non classé » de la liste « ${list.name} ».`];
+    if (stats.merged) parts.push(`${stats.merged} saisons regroupées avec leur licence.`);
+    if (stats.ignored) parts.push(`${stats.ignored} films / OVA liés à une série ont été laissés de côté.`);
+    setImport('ok', parts.join(' '));
+    $('#impGo').textContent = 'Terminé';
+    $('#impGo').disabled = false;
+    $('#impGo').onclick = () => { $('#dlgImport').close(); $('#impGo').onclick = runImport; };
+  } catch (e) {
+    setImport('err', IMPORT_ERRORS[e.message] || IMPORT_ERRORS.other);
+    $('#impGo').disabled = false;
+  }
+}
+$('#impGo').onclick = runImport;
+$('#impUser').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); $('#impGo').click(); } });
+$('#impClose').onclick = () => { $('#dlgImport').close(); $('#impGo').onclick = runImport; };
+$('#listImport').onclick = () => { $('#dlgList').close(); openImport(); };
 
 // ---------- Démarrage ----------
 document.body.classList.add('boot'); // animation d'arrivée, retirée ensuite pour ne pas se rejouer
