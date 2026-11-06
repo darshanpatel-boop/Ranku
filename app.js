@@ -71,7 +71,6 @@ const save = () => { try { localStorage.setItem(STORE, JSON.stringify(db)); } ca
 const cur = () => db.lists.find((l) => l.id === db.cur) || db.lists[0];
 
 // ---------- Affichage ----------
-let sel = null; // clé de l'animé sélectionné
 let sortables = [];
 let imgBase = 'https://cdn.myanimelist.net/images/anime/';
 
@@ -79,7 +78,7 @@ const imgUrl = (i) => (i.startsWith('http') ? i : imgBase + i);
 
 function card(list, key) {
   const it = list.items[key];
-  return h('button', { class: 'card' + (key === sel ? ' sel' : ''), dataset: { k: key }, title: it.t, type: 'button' },
+  return h('div', { class: 'card', dataset: { k: key }, title: it.t },
     h('img', { src: imgUrl(it.i), alt: it.t, loading: 'lazy', draggable: 'false' }),
     h('span', { class: 'tt' }, it.t));
 }
@@ -113,42 +112,30 @@ function render() {
   board.querySelectorAll('.zone').forEach((z) => {
     sortables.push(new Sortable(z, {
       group: 'items',
-      animation: 150,
-      delay: 180,
+      animation: 160,
+      forceFallback: true,       // glisser géré par Sortable lui-même (même comportement partout, souris et doigt)
+      fallbackTolerance: 3,
+      delay: 160,                // au doigt : appui bref avant de saisir, pour pouvoir faire défiler la page
       delayOnTouchOnly: true,
       touchStartThreshold: 6,
+      emptyInsertThreshold: 30,  // facilite le dépôt dans un tier vide
+      swapThreshold: 0.6,
       ghostClass: 'sortable-ghost',
+      chosenClass: 'sortable-chosen',
       onEnd: syncFromDom,
     }));
   });
-  updatePlaceBar();
 }
 
-// Relit l'ordre depuis le DOM après un glisser-déposer.
+// Relit l'ordre depuis le DOM après un glisser-déposer (le DOM est déjà à jour : pas de reconstruction).
 function syncFromDom() {
   const list = cur();
-  for (const z of document.querySelectorAll('.zone')) {
-    const keys = [...z.children].map((c) => c.dataset.k);
+  for (const z of document.querySelectorAll('#board .zone')) {
+    const keys = [...z.children].map((c) => c.dataset.k).filter(Boolean);
     if (z.dataset.zone === 'pool') list.pool = keys;
     else list.tiers.find((t) => t.id === z.dataset.zone).items = keys;
   }
   save();
-  render();
-}
-
-// ---------- Placement au toucher : toucher l'animé, puis le tier ----------
-function updatePlaceBar() {
-  const bar = $('#placeBar');
-  const list = cur();
-  if (!sel || !list.items[sel]) { sel = null; bar.hidden = true; return; }
-  bar.hidden = false;
-  bar.replaceChildren(
-    h('div', { class: 'pt' }, 'Placer « ' + list.items[sel].t + ' » dans :'),
-    h('div', { class: 'btns' },
-      list.tiers.map((t) => h('button', { style: `background:${t.color};color:${textOn(t.color)}`, onclick: () => place(t.id), type: 'button' }, t.name)),
-      h('button', { class: 'plain', onclick: () => place('pool'), type: 'button' }, 'Non classé'),
-      h('button', { class: 'rm', onclick: removeSel, type: 'button' }, 'Retirer'),
-      h('button', { class: 'plain', onclick: () => { sel = null; render(); }, type: 'button' }, 'Annuler')));
 }
 
 function detach(list, key) {
@@ -156,27 +143,7 @@ function detach(list, key) {
   list.tiers.forEach((t) => (t.items = t.items.filter((k) => k !== key)));
 }
 
-function place(target) {
-  const list = cur();
-  detach(list, sel);
-  (target === 'pool' ? list.pool : list.tiers.find((t) => t.id === target).items).push(sel);
-  sel = null;
-  save();
-  render();
-}
-
-function removeSel() {
-  const list = cur();
-  detach(list, sel);
-  delete list.items[sel];
-  sel = null;
-  save();
-  render();
-}
-
 $('#board').addEventListener('click', (e) => {
-  const c = e.target.closest('.card');
-  if (c) { sel = sel === c.dataset.k ? null : c.dataset.k; render(); return; }
   const mv = e.target.closest('[data-mv]');
   if (mv) { swapTier(mv.dataset.tier, Number(mv.dataset.mv)); return; }
   if (e.target.closest('.add-anime')) { openSearch(); return; }
@@ -302,7 +269,7 @@ $('#dlgList').addEventListener('close', () => {
   const name = $('#listName').value.trim();
   if (!name) return;
   if (editList) db.lists.find((l) => l.id === editList).name = name;
-  else { const l = newList(name); db.lists.push(l); db.cur = l.id; sel = null; }
+  else { const l = newList(name); db.lists.push(l); db.cur = l.id; }
   save(); render();
 });
 $('#listDel').onclick = () => {
@@ -310,13 +277,13 @@ $('#listDel').onclick = () => {
   if (!delArmed) { delArmed = true; $('#listDel').textContent = 'Sûr ? Appuie pour supprimer'; return; }
   db.lists = db.lists.filter((l) => l.id !== editList);
   if (db.cur === editList) db.cur = db.lists[0].id;
-  sel = null; editList = null;
+  editList = null;
   $('#dlgList').close('deleted');
   save(); render();
 };
 $('#listTabs').addEventListener('click', (e) => {
   const chip = e.target.closest('[data-list]');
-  if (chip) { db.cur = chip.dataset.list; sel = null; save(); render(); return; }
+  if (chip) { db.cur = chip.dataset.list; save(); render(); return; }
   if (e.target.closest('[data-editlist]')) openList(cur().id);
   else if (e.target.closest('[data-newlist]')) openList(null);
 });
@@ -424,12 +391,13 @@ function hlNodes(title, q) {
 }
 
 const svgEl = (html) => { const t = document.createElement('template'); t.innerHTML = html.trim(); return t.content.firstChild; };
+const CHECK = '<svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
 const TRASH = '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></svg>';
 
 function srChip(added) {
   return h('button', { class: 'sr-chip', type: 'button', 'aria-label': added ? 'Retirer de ma liste' : 'Ajouter à ma liste' },
     added
-      ? [h('span', { class: 'st st1' }, h('i', { class: 'ic pt' }), 'Ajouté'),
+      ? [h('span', { class: 'st st1' }, h('i', { class: 'ic ck' }, svgEl(CHECK))),
          h('span', { class: 'st st2' }, h('i', { class: 'ic tr' }, svgEl(TRASH)), 'Retirer')]
       : [h('i', { class: 'ic' }, '+'), 'Ajouter']);
 }
