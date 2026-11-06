@@ -347,26 +347,7 @@ button.danger { background: #3a2328; color: #ff9a9a; border: 2px solid var(--lin
 .card .cnt { position: absolute; right: 5px; bottom: 5px; z-index: 2; padding: 1px 7px; border-radius: 99px; background: rgba(10,14,28,.8); border: 1px solid rgba(255,255,255,.28); color: #fff; font: 800 11px 'Inter', sans-serif; pointer-events: none; }
 .cork .card .cnt { bottom: 20px; right: 10px; }
 
-/* case à cocher, ligne saison/film (tiroir et fiche) */
-.dr-m { display: flex; align-items: center; gap: 10px; width: 100%; padding: 9px 12px; border-radius: 12px; background: #2a2f42; border: 2px solid var(--line); box-shadow: 0 2px 0 var(--line); color: var(--text); text-align: left; font: 600 13px 'Inter', sans-serif; }
-.dr-m .t { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.dr-m em { font-style: normal; color: #8f98b8; font-weight: 600; flex: none; }
-.dr-m .cb { flex: none; width: 22px; height: 22px; border-radius: 7px; border: 2px solid #5b6480; display: flex; align-items: center; justify-content: center; color: transparent; transition: background .15s, border-color .15s; }
-.dr-m .cb svg { width: 13px; height: 13px; stroke: currentColor; fill: none; stroke-width: 3.4; stroke-linecap: round; stroke-linejoin: round; }
-.dr-m.on { background: #26335a; border-color: var(--accent); }
-.dr-m.on .cb { background: var(--accent); border-color: var(--accent); color: #fff; }
-.dr-m.off { opacity: .45; cursor: default; }
-.dr-m:active:not(.off) { translate: 0 2px; box-shadow: 0 0 0 var(--line); scale: 1; }
 
-.sw-drawer { position: absolute; left: 0; right: 0; bottom: 0; z-index: 30; max-height: 78%; display: flex; flex-direction: column; background: #1c2030; border-top: 2px solid var(--accent); border-radius: 18px 18px 0 0; box-shadow: 0 -16px 40px rgba(0,0,0,.55); padding: 16px 20px calc(16px + env(safe-area-inset-bottom)); transform: translateY(105%); transition: transform .26s cubic-bezier(.2, .9, .3, 1.05); visibility: hidden; }
-.sw-drawer.show { transform: none; visibility: visible; }
-.dr-head { display: flex; align-items: center; gap: 14px; flex: none; }
-.dr-head img { width: 50px; height: 72px; object-fit: cover; border-radius: 8px; border: 2px solid var(--line); }
-.dr-t { flex: 1; min-width: 0; } .dr-t h4 { margin: 0; font: 800 20px 'Baloo 2', sans-serif; } .dr-t span { color: #9aa0b4; font-size: 13px; }
-.dr-quick { display: flex; gap: 6px; flex: none; }
-.dr-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px; margin: 14px 0; overflow-y: auto; min-height: 60px; }
-.dr-act { display: flex; align-items: center; gap: 10px; flex: none; }
-.dr-note { flex: 1; color: #8f98b8; font-size: 12px; }
 
 .fiche { width: min(94vw, 560px); max-height: min(88vh, 720px); }
 .fiche[open] { display: flex; flex-direction: column; }
@@ -377,7 +358,12 @@ button.danger { background: #3a2328; color: #ff9a9a; border: 2px solid var(--lin
 .fi-hint, .fi-solo p { margin: 4px 0; color: #9aa0b4; font-size: 13px; }
 .fi-solo { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
 .fi-row { display: flex; align-items: center; gap: 6px; }
-.fi-row .dr-m { flex: 1; min-width: 0; }
 .fi-a { flex: none; padding: 8px 10px; border-radius: 10px; background: var(--panel2); color: var(--text); border: 2px solid var(--line); box-shadow: 0 2px 0 var(--line); font: 700 12px 'Inter', sans-serif; }
 .fi-a.on { color: #ffd24d; }
 .fi-foot { display: flex; justify-content: space-between; gap: 10px; padding: 12px 18px 18px; border-top: 1px solid var(--line); }
+
+/* ligne saison dans la fiche */
+.fi-m { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 12px; background: #2a2f42; border: 2px solid var(--line); box-shadow: 0 2px 0 var(--line); font: 600 13px 'Inter', sans-serif; }
+.fi-m .t { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fi-m em { font-style: normal; color: #8f98b8; flex: none; }
+.fi-m.off { opacity: .45; }

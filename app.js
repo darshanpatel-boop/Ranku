@@ -394,10 +394,10 @@ async function searchAniList(q) {
   return j.data.Page.media.filter((m) => !['MUSIC', 'SPECIAL'].includes(m.format));
 }
 
-function addItem(key, title, image) {
+function addItem(key, title, image, m) {
   const list = cur();
   if (list.items[key]) return false;
-  list.items[key] = { t: title, i: image };
+  list.items[key] = m ? { t: title, i: image, m } : { t: title, i: image };
   list.pool.push(key);
   freshKey = key;
   save();
@@ -452,7 +452,7 @@ function srItem(it, q, n = 0) {
   return h('div', { class: 'sr-it' + (added ? ' added' : '') + (it.gid ? ' stack' : ''), dataset: { k: it.key }, style: `--n:${Math.min(n, 14)}` },
     h('div', { class: 'sr-pic' }, h('img', { src: imgUrl(it.img), alt: '', loading: 'lazy' }), h('div', { class: 'sr-ov' }, srChip(added))),
     h('b', {}, hlNodes(it.title, q)),
-    h('span', { class: 'sr-meta' }, h('span', { class: 'sr-tag t-' + it.fmt }, TYPE_FR[it.fmt] || it.fmt), it.gid ? ` ${it.n} saisons et films` : (it.year ? ' ' + it.year : '')));
+    h('span', { class: 'sr-meta' }, h('span', { class: 'sr-tag t-' + it.fmt }, TYPE_FR[it.fmt] || it.fmt), it.gid ? ` ${it.n} saisons` : (it.year ? ' ' + it.year : '')));
 }
 
 function renderSearch(animate) {
@@ -561,77 +561,9 @@ function refreshItem(it, added) {
 function toggleItem(it) {
   const k = keyInList(it);
   if (k) { removeKey(k); S.session.delete(it.key); }
-  else if (it.gid) { openDrawer(it); return; } // une licence : on choisit d'abord les saisons vues
-  else { addItem(it.key, it.title, it.img); S.session.add(it.key); showUndo(it); }
+  else { addItem(it.key, it.title, it.img, it.gid ? groupRows(it.gid).map(rowKey) : undefined); S.session.add(it.key); showUndo(it); }
   refreshItem(it, !!keyInList(it));
 }
-
-// ---------- Tiroir « quelles saisons as-tu vues ? » ----------
-const D = { it: null, picks: new Set() };
-const CB = '<svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
-
-// une ligne saison / film : case, étiquette de type, titre, année (comme dans la fiche de licence)
-function memberLine(r, { on, off, act }) {
-  const f = fmtOf(r);
-  return h('button', { class: 'dr-m' + (on ? ' on' : '') + (off ? ' off' : ''), type: 'button', dataset: { mk: rowKey(r) }, ...(off ? { disabled: '' } : {}), ...(act ? { 'data-act': act } : {}) },
-    h('i', { class: 'cb' }, svgEl(CB)),
-    h('span', { class: 'sr-tag t-' + f }, TYPE_FR[f]),
-    h('span', { class: 't' }, r[0]),
-    h('em', {}, r[2] || ''));
-}
-
-function renderDrawer() {
-  const it = D.it, list = cur(), rows = groupRows(it.gid);
-  const apart = (r) => !!list.items[rowKey(r)];
-  const n = rows.filter((r) => D.picks.has(rowKey(r))).length;
-  $('#srDrawer').replaceChildren(
-    h('div', { class: 'dr-head' },
-      h('img', { src: imgUrl(it.img), alt: '' }),
-      h('div', { class: 'dr-t' }, h('h4', {}, it.title), h('span', {}, 'Quelles saisons et quels films as-tu vus ?')),
-      h('div', { class: 'dr-quick' },
-        h('button', { class: 'sw-pill', dataset: { dq: 'all' }, type: 'button' }, 'Tout'),
-        h('button', { class: 'sw-pill', dataset: { dq: 'tv' }, type: 'button' }, 'Séries'))),
-    h('div', { class: 'dr-list' }, rows.map((r) => memberLine(r, { on: D.picks.has(rowKey(r)), off: apart(r) }))),
-    h('div', { class: 'dr-act' },
-      h('span', { class: 'dr-note' }, 'Une seule carte sera ajoutée pour toute la licence.'),
-      h('button', { class: 'ghost', id: 'drCancel', type: 'button' }, 'Annuler'),
-      h('button', { class: 'primary', id: 'drOk', type: 'button', ...(n ? {} : { disabled: '' }) }, `Ajouter ${n} élément${n > 1 ? 's' : ''}`)));
-}
-
-function openDrawer(it) {
-  D.it = it;
-  D.picks = new Set([rowKey(groupRows(it.gid)[0])]);
-  renderDrawer();
-  $('#srDrawer').classList.add('show');
-}
-function closeDrawer() { D.it = null; $('#srDrawer').classList.remove('show'); }
-
-function confirmDrawer() {
-  const it = D.it, list = cur();
-  const m = groupRows(it.gid).map(rowKey).filter((k) => D.picks.has(k));
-  if (!m.length) return;
-  list.items[it.key] = { t: it.title, i: it.img, m };
-  list.pool.push(it.key);
-  freshKey = it.key;
-  save(); render();
-  S.session.add(it.key);
-  closeDrawer();
-  showUndo(it);
-  refreshItem(it, true);
-}
-
-$('#srDrawer').addEventListener('click', (e) => {
-  const m = e.target.closest('.dr-m');
-  if (m && !m.disabled) { const k = m.dataset.mk; D.picks.has(k) ? D.picks.delete(k) : D.picks.add(k); renderDrawer(); return; }
-  const q = e.target.closest('[data-dq]');
-  if (q) {
-    const list = cur();
-    D.picks = new Set(groupRows(D.it.gid).filter((r) => !list.items[rowKey(r)] && (q.dataset.dq === 'all' || fmtOf(r) === 'TV')).map(rowKey));
-    renderDrawer(); return;
-  }
-  if (e.target.closest('#drCancel')) closeDrawer();
-  if (e.target.closest('#drOk')) confirmDrawer();
-});
 
 $('#results').addEventListener('click', (e) => {
   if (e.target.closest('#srAni2')) { fetchAni(); return; }
@@ -685,7 +617,6 @@ $('#dlgSearch').addEventListener('close', () => {
   $('#q').value = '';
   Object.assign(S, { items: [], ani: [], aniState: '', undoKey: null, type: 'all' });
   S.session.clear();
-  closeDrawer();
   $('#srToast').classList.remove('show');
   render();
 });
@@ -714,6 +645,12 @@ function fiAction(label, act, k, cls = '') {
   return h('button', { class: 'fi-a ' + cls, type: 'button', dataset: { fa: act, k }, title: label }, label);
 }
 
+const fiMember = (r, { off }) => {
+  const f = fmtOf(r);
+  return h('div', { class: 'fi-m' + (off ? ' off' : '') },
+    h('span', { class: 'sr-tag t-' + f }, TYPE_FR[f]), h('span', { class: 't' }, r[0]), h('em', {}, r[2] || ''));
+};
+
 function renderFiche() {
   const list = cur(), it = list.items[ficheKey];
   if (!it) { ficheKey = null; if ($('#dlgFiche').open) $('#dlgFiche').close(); return; }
@@ -724,23 +661,24 @@ function renderFiche() {
   const rows = animeData && gid ? groupRows(gid) : [];
 
   if (it.m && rows.length) {
-    $('#fiSub').textContent = `${it.m.length} sur ${rows.length} dans ta liste`;
+    $('#fiSub').textContent = `${rows.length} saison${rows.length > 1 ? 's' : ''}`;
     box.replaceChildren(
-      h('p', { class: 'fi-hint' }, 'Coche ce que tu as vu. L’étoile choisit la jaquette de la carte, « Séparer » en fait une carte à part.'),
+      h('p', { class: 'fi-hint' }, 'L’étoile choisit la jaquette de la carte. « Séparer » fait d’une saison une carte à part.'),
       ...rows.map((r) => {
         const k = rowKey(r), on = it.m.includes(k), apart = !!list.items[k] && k !== ficheKey && !on;
         return h('div', { class: 'fi-row' },
-          memberLine(r, { on, off: apart, act: 'toggle' }),
+          fiMember(r, { off: !on }),
           on ? fiAction(r[3] === it.i ? '★' : '☆', 'cover', k, r[3] === it.i ? 'on' : '') : null,
           on && it.m.length > 1 ? fiAction('Séparer', 'split', k) : null,
-          apart ? fiAction('Regrouper', 'merge', k) : null);
+          apart ? fiAction('Regrouper', 'merge', k) : null,
+          !on && !apart ? fiAction('Ajouter', 'toggle', k) : null);
       }));
   } else {
     const r = rowOfKey(ficheKey);
     $('#fiSub').textContent = r ? [TYPE_FR[fmtOf(r)], r[2] || null].filter(Boolean).join(' · ') : '';
     box.replaceChildren(
       rows.length > 1
-        ? h('div', { class: 'fi-solo' }, h('p', {}, `Cette carte est séparée de sa licence (${rows.length} éléments).`), h('button', { class: 'ghost', id: 'fiRegroup', type: 'button' }, 'Regrouper avec sa licence'))
+        ? h('div', { class: 'fi-solo' }, h('p', {}, `Cette carte est séparée de sa licence (${rows.length} saisons).`), h('button', { class: 'ghost', id: 'fiRegroup', type: 'button' }, 'Regrouper avec sa licence'))
         : h('p', { class: 'fi-hint' }, 'Aucune autre saison liée à cet animé dans la base.'));
   }
 }
@@ -748,10 +686,7 @@ function renderFiche() {
 function fiAct(act, k) {
   const list = cur(), it = list.items[ficheKey], r = rowOfKey(k);
   if (act === 'toggle') {
-    if (it.m.includes(k)) {
-      if (it.m.length === 1) return toast('Pour tout retirer, utilise « Retirer de ma liste »');
-      it.m = it.m.filter((x) => x !== k);
-    } else it.m.push(k);
+    if (!it.m.includes(k)) it.m.push(k);
   } else if (act === 'cover') {
     it.i = r[3];
   } else if (act === 'split') {
@@ -786,8 +721,6 @@ function regroupSolo() {
 $('#fiList').addEventListener('click', (e) => {
   const a = e.target.closest('[data-fa]');
   if (a) { fiAct(a.dataset.fa, a.dataset.k); return; }
-  const m = e.target.closest('.dr-m');
-  if (m && !m.disabled) { fiAct('toggle', m.dataset.mk); return; }
   if (e.target.closest('#fiRegroup')) regroupSolo();
 });
 $('#fiDel').onclick = () => { const k = ficheKey; $('#dlgFiche').close(); removeKey(k); };

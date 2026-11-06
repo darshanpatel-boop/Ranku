@@ -100,35 +100,46 @@ for (const [x, y] of manual.join || []) union(rowOfKey.get(x), rowOfKey.get(y));
 
 const members = new Map();
 rows.forEach((_, i) => { const r = find(i); (members.get(r) || members.set(r, []).get(r)).push(i); });
-const TYPE_ORDER = [0, 1, 2, 3]; // TV, MOVIE, OVA, ONA
 const chrono = (i, j) => (rows[i][2] || 9999) - (rows[j][2] || 9999) || rows[i][1] - rows[j][1] || rows[i][0].localeCompare(rows[j][0]);
+
+// Une licence ne contient que des séries TV. Quand un groupe contient au moins une série TV, ses films / OVA / ONA sont
+// retirés de la base (ils surchargeaient les licences : Dragon Ball Z, Détective Conan…). Les films indépendants restent.
+const hidden = new Set();
+for (const list of members.values()) {
+  if (list.length > 1 && list.some((i) => rows[i][1] === 0)) list.forEach((i) => { if (rows[i][1] !== 0) hidden.add(i); });
+}
 const groups = {};
 let gid = 0;
-for (const list of [...members.values()].filter((l) => l.length > 1).sort((a, b) => b.length - a.length)) {
+const lists = [...members.values()].map((l) => l.filter((i) => !hidden.has(i))).filter((l) => l.length > 1).sort((a, b) => b.length - a.length);
+for (const list of lists) {
   list.sort(chrono);
-  // jaquette : la vraie série TV la plus ancienne, sinon le plus ancien tout court
-  const rep = list.find((i) => rows[i][1] === 0) ?? list[0];
+  const rep = list.find((i) => rows[i][1] === 0) ?? list[0]; // jaquette : la série TV la plus ancienne
   gid += 1;
   groups[gid] = [rep, ...list.filter((i) => i !== rep)];
   list.forEach((i) => { rows[i][8] = gid; });
 }
 
-// ---------- Rapport (court) pour repérer les fusions suspectes
-const sizes = Object.values(groups).map((g) => g.length);
-const bucket = (lo, hi) => sizes.filter((n) => n >= lo && n <= hi).length;
-console.log(`Licences : ${sizes.length} groupes (2 : ${bucket(2, 2)}, 3-5 : ${bucket(3, 5)}, 6-10 : ${bucket(6, 10)}, 11-20 : ${bucket(11, 20)}, 21+ : ${bucket(21, 9999)}) ; ${rows.filter((r) => r[8]).length} animés regroupés, ${rows.filter((r) => !r[8]).length} seuls`);
-console.log('Plus gros groupes :');
-Object.entries(groups).slice(0, 25).forEach(([id, g]) => console.log(`  #${id} ${String(g.length).padStart(3)} · ${rows[g[0]][0]}`));
+// ---------- Lignes finales (sans les éléments retirés) et indices de groupes recalculés
+const newIdx = new Map();
+const outRows = [];
+rows.forEach((r, i) => { if (!hidden.has(i)) { newIdx.set(i, outRows.length); outRows.push(r); } });
+const outGroups = Object.fromEntries(Object.entries(groups).map(([id, g]) => [id, g.map((i) => newIdx.get(i))]));
 
+// ---------- Rapport (court) pour repérer les fusions suspectes
+const sizes = Object.values(outGroups).map((g) => g.length);
+const bucket = (lo, hi) => sizes.filter((n) => n >= lo && n <= hi).length;
+console.log(`Licences (séries TV) : ${sizes.length} groupes (2 : ${bucket(2, 2)}, 3-5 : ${bucket(3, 5)}, 6-10 : ${bucket(6, 10)}, 11+ : ${bucket(11, 9999)}) ; ${hidden.size} films/OVA/ONA rattachés à une série retirés ; ${outRows.length} lignes gardées`);
+console.log('Plus gros groupes :');
+Object.entries(outGroups).slice(0, 12).forEach(([id, g]) => console.log(`  #${id} ${String(g.length).padStart(3)} · ${outRows[g[0]][0]}`));
 
 const out = JSON.stringify({
   source: 'anime-offline-database (manami-project), licence ODbL 1.0',
   lastUpdate: db.lastUpdate,
   imgBase: MAL_IMG,
   types: TYPES,
-  rows,
-  groups, // identifiant de licence -> indices des lignes (le premier est la jaquette)
+  rows: outRows,
+  groups: outGroups, // identifiant de licence -> indices des lignes (le premier est la jaquette)
 });
 writeFileSync(OUT, out);
-console.log(`${db.data.length} entrées brutes -> ${rows.length} gardées`);
+console.log(`${db.data.length} entrées brutes -> ${outRows.length} gardées`);
 console.log(`data/anime.json : ${(out.length / 1e6).toFixed(2)} Mo, gzip ${(gzipSync(out).length / 1e6).toFixed(2)} Mo`);
