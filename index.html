@@ -19,7 +19,9 @@
   <button id="btnNewList" class="newlist" type="button" aria-label="Nouvelle tier list" title="Nouvelle tier list"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
 </header>
 
-<main id="board"></main>
+<main id="homeView" hidden></main>
+<main id="board" hidden></main>
+<main id="topView" hidden></main>
 <footer class="site-foot"><button id="btnAbout" class="link" type="button">À propos et sources des données</button></footer>
 
 <dialog id="dlgSearch" class="swin">
@@ -123,6 +125,33 @@
     <div class="foot">
       <button class="ghost" id="chClose" type="button">Fermer</button>
       <button class="primary" id="chGo" type="button">Ajouter</button>
+    </div>
+  </div>
+</dialog>
+
+<dialog id="dlgTop" class="modal">
+  <form method="dialog">
+    <h2 id="topTitle">Nouveau top</h2>
+    <label class="fld">Nom <input id="topName" maxlength="30" autocomplete="off" placeholder="Ex. Mon top 10 animés"></label>
+    <div class="imp-dest imp-srcrow" id="topSize"></div>
+    <div class="imp-dest type-row" id="topType"></div>
+    <div class="foot">
+      <div class="only-edit"><button type="button" id="topDel" class="danger sm">Supprimer</button></div>
+      <button value="ok" id="topOk" class="primary">Créer</button>
+      <button value="cancel" class="ghost only-new">Annuler</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlgFill" class="modal">
+  <div class="imp-in">
+    <h2>Remplir mon top</h2>
+    <p class="imp-note">Les places libres de ton top sont remplies avec les cartes de la tier list choisie, en commençant par le tier S, puis A, B… Ce qui est déjà dans ton top ne bouge pas.</p>
+    <div class="imp-dest" id="flSrc"></div>
+    <div id="flState" class="imp-state" hidden></div>
+    <div class="foot">
+      <button class="ghost" id="flClose" type="button">Fermer</button>
+      <button class="primary" id="flGo" type="button">Remplir</button>
     </div>
   </div>
 </dialog>

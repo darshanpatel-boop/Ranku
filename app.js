@@ -68,8 +68,9 @@ for (const l of db.lists) {
     if (t.desc === undefined) t.desc = (DEFAULT_TIERS.find((d) => d[0] === t.name) || [])[2] || '';
   }
 }
+db.tops ??= []; db.curTop ??= null; // les tops (classements 5 / 10 / 15)
 const save = () => { try { localStorage.setItem(STORE, JSON.stringify(db)); } catch { toast('Sauvegarde impossible (stockage plein ?)'); } };
-const cur = () => db.lists.find((l) => l.id === db.cur) || db.lists[0];
+const cur = () => (UI.view === 'top' ? curTop() : db.lists.find((l) => l.id === db.cur) || db.lists[0]); // collection en cours : liste de tiers ou top
 
 // ---------- Affichage ----------
 let sortables = [];
@@ -88,6 +89,9 @@ function card(list, key) {
 }
 
 function render() {
+  if (UI.view === 'home') { renderHome(); return; }
+  if (UI.view === 'top') { renderTop(); return; }
+  showView();
   const list = cur();
   if (UI.listId !== list.id) { UI.listId = list.id; UI.filter = ''; UI.sel.clear(); UI.selMode = false; } // filtre et sélection propres à chaque liste
   for (const k of [...UI.sel]) if (!list.items[k]) UI.sel.delete(k);
@@ -170,6 +174,7 @@ function syncFromDom() {
 function detach(list, key) {
   list.pool = list.pool.filter((k) => k !== key);
   list.tiers.forEach((t) => (t.items = t.items.filter((k) => k !== key)));
+  if (list.slots) { list.slots = list.slots.map((k) => (k === key ? null : k)); compactSlots(list); }
 }
 
 $('#board').addEventListener('click', (e) => {
@@ -315,8 +320,8 @@ function renderTabs() {
   const box = $('#listTabs');
   box.replaceChildren(
     tabPill,
-    ...db.lists.map((l) => {
-      const on = l.id === db.cur;
+    ...(UI.view === 'top' ? db.tops : db.lists).map((l) => {
+      const on = l.id === (UI.view === 'top' ? db.curTop : db.cur);
       return h('button', { class: 'chip' + (on ? ' on' : ''), dataset: { list: l.id }, type: 'button', title: on ? 'Renommer ou supprimer cette liste' : null },
         l.type === 'char' ? h('span', { class: 'ty' }, svgEl(USER_ICON)) : null, l.name, on ? h('span', { class: 'ed' }, svgEl(PENCIL)) : null);
     }));
@@ -362,11 +367,13 @@ $('#listDel').onclick = () => {
 $('#listTabs').addEventListener('click', (e) => {
   const chip = e.target.closest('[data-list]');
   if (!chip) return;
-  if (chip.dataset.list === db.cur) { openList(db.cur); return; }
-  db.cur = chip.dataset.list; save(); render();
-  $('#board').animate([{ opacity: 0, transform: 'translateY(8px)' }, { opacity: 1, transform: 'none' }], { duration: 260, easing: 'ease-out' });
+  const top = UI.view === 'top';
+  if (chip.dataset.list === (top ? db.curTop : db.cur)) { top ? openTop(db.curTop) : openList(db.cur); return; }
+  if (top) db.curTop = chip.dataset.list; else db.cur = chip.dataset.list;
+  save(); render();
+  $(top ? '#topView' : '#board').animate([{ opacity: 0, transform: 'translateY(8px)' }, { opacity: 1, transform: 'none' }], { duration: 260, easing: 'ease-out' });
 });
-$('#btnNewList').onclick = () => openList(null);
+$('#btnNewList').onclick = () => (UI.view === 'top' ? openTop(null) : openList(null));
 
 $('#btnAbout').onclick = () => {
   $('#aboutDate').textContent = animeData ? `Base mise à jour le ${animeData.lastUpdate}.` : '';
@@ -447,9 +454,11 @@ async function searchAniList(q) {
 function addItem(key, title, image, m, extra) {
   const list = cur();
   if (list.items[key]) return false;
+  if (list.slots && !list.slots.includes(null)) return false; // top complet
   list.items[key] = m ? { t: title, i: image, m } : { t: title, i: image };
   if (extra) Object.assign(list.items[key], extra);
-  list.pool.push(key);
+  if (list.slots) list.slots[list.slots.indexOf(null)] = key; // un top : première place libre
+  else list.pool.push(key);
   freshKey = key;
   save();
   render();
@@ -613,7 +622,12 @@ function refreshItem(it, added) {
 function toggleItem(it) {
   const k = keyInList(it);
   if (k) { removeKey(k); S.session.delete(it.key); }
-  else { addItem(it.key, it.title, it.img, it.gid ? groupRows(it.gid).map(rowKey) : undefined, it.char ? { a: it.sub } : undefined); S.session.add(it.key); showUndo(it); }
+  else {
+    if (!addItem(it.key, it.title, it.img, it.gid ? groupRows(it.gid).map(rowKey) : undefined, it.char ? { a: it.sub } : undefined)) { toast('Ton top est complet'); return; }
+    S.session.add(it.key); showUndo(it);
+    const t = cur();
+    if (t.slots && !t.slots.includes(null)) setTimeout(() => $('#dlgSearch').close(), 600); // top rempli : on referme la recherche
+  }
   refreshItem(it, !!keyInList(it));
 }
 
@@ -655,7 +669,8 @@ $('#dlgSearch').addEventListener('click', (e) => { if (e.target === $('#dlgSearc
 function openSearch() {
   const dlg = $('#dlgSearch');
   const chr = cur().type === 'char';
-  $('#srTitle').textContent = chr ? 'Ajouter des personnages' : 'Ajouter des animés';
+  const forTop = UI.view === 'top' ? ' à mon top' : '';
+  $('#srTitle').textContent = (chr ? 'Ajouter des personnages' : 'Ajouter des animés') + forTop;
   $('#q').placeholder = chr ? 'Nom d’un personnage…' : 'Titre d’un animé…';
   if (!dlg.open) dlg.showModal();
   $('#q').focus();
@@ -712,6 +727,7 @@ function renderFiche() {
   $('#fiImg').src = imgUrl(it.i);
   $('#fiTitle').textContent = it.t;
   $('#fiReset').hidden = it.i0 === undefined;
+  $('#fiDel').textContent = list.slots ? 'Retirer du top' : 'Retirer de ma liste';
   const box = $('#fiList');
   const gid = it.m ? gidOf(it.m[0]) : gidOf(ficheKey);
   const rows = animeData && gid ? groupRows(gid) : [];
@@ -725,15 +741,15 @@ function renderFiche() {
         return h('div', { class: 'fi-row' },
           fiMember(r, { off: !on }),
           on ? fiAction(r[3] === it.i ? '★' : '☆', 'cover', k, r[3] === it.i ? 'on' : '') : null,
-          on && it.m.length > 1 ? fiAction('Séparer', 'split', k) : null,
-          apart ? fiAction('Regrouper', 'merge', k) : null,
+          on && it.m.length > 1 && !list.slots ? fiAction('Séparer', 'split', k) : null,
+          apart && !list.slots ? fiAction('Regrouper', 'merge', k) : null,
           !on && !apart ? fiAction('Ajouter', 'toggle', k) : null);
       }));
   } else {
     const r = rowOfKey(ficheKey);
     $('#fiSub').textContent = r ? [TYPE_FR[fmtOf(r)], r[2] || null].filter(Boolean).join(' · ') : (it.a || '');
     box.replaceChildren(
-      rows.length > 1
+      rows.length > 1 && !list.slots
         ? h('div', { class: 'fi-solo' }, h('p', {}, `Cette carte est séparée de sa licence (${rows.length} saisons).`), h('button', { class: 'ghost', id: 'fiRegroup', type: 'button' }, 'Regrouper avec sa licence'))
         : h('p', { class: 'fi-hint' }, it.a !== undefined ? 'Personnage' + (it.a ? ' de « ' + it.a + ' »' : '') + '.' : 'Aucune autre saison liée à cet animé dans la base.'));
   }
@@ -892,7 +908,7 @@ async function refreshShare() {
   $('#shState').textContent = 'Création de l’image…';
   $('#shState').hidden = false; img.hidden = true;
   ['shDl', 'shCopy', 'shShare'].forEach((id) => { $('#' + id).disabled = true; });
-  const cv = await buildShareImage(list);
+  const cv = await (list.slots ? buildTopImage(list) : buildShareImage(list));
   const blob = await new Promise((r) => cv.toBlob(r, 'image/png'));
   if (my !== SH.busy) return; // une demande plus récente a pris le relais
   SH.blob = blob;
@@ -904,6 +920,7 @@ async function refreshShare() {
 }
 
 function openShare() {
+  if (cur().slots && !cur().slots.some(Boolean)) { toast('Ajoute d’abord quelques éléments à ton top'); return; }
   const file = new File([new Blob()], 'x.png', { type: 'image/png' });
   $('#shShare').hidden = !(navigator.canShare && navigator.canShare({ files: [file] }));
   $('#shCopy').hidden = !(window.ClipboardItem && navigator.clipboard?.write);
@@ -1610,6 +1627,310 @@ $('#dlgSort').addEventListener('keydown', (e) => {
   else if (e.key === ' ' || e.key === 'ArrowRight') { e.preventDefault(); quickSkip(); }
   else if (e.key === 'Backspace' || e.key === 'z') { e.preventDefault(); quickUndo(); }
 });
+
+// ---------- Navigation : accueil, tier lists, tops ----------
+const VIEWS = { '': 'home', '#tiers': 'tiers', '#tops': 'top' };
+const HASH = { home: '', tiers: '#tiers', top: '#tops' };
+UI.view = VIEWS[location.hash] || 'home'; // sans adresse précise, on ouvre l'accueil
+
+function go(view) {
+  if (UI.view === view) { render(); return; }
+  UI.view = view; UI.selMode = false; UI.sel.clear();
+  history.pushState(null, '', HASH[view] || location.pathname + location.search); // le bouton « retour » du téléphone fonctionne
+  window.scrollTo(0, 0);
+  render();
+}
+window.addEventListener('popstate', () => { UI.view = VIEWS[location.hash] || 'home'; render(); });
+$('.brand').onclick = () => go('home');
+
+// affiche seulement l'écran en cours ; la barre d'onglets et le « + » n'existent que dans les écrans de listes
+function showView() {
+  document.body.dataset.view = UI.view;
+  $('#homeView').hidden = UI.view !== 'home';
+  $('#board').hidden = UI.view !== 'tiers';
+  $('#topView').hidden = UI.view !== 'top';
+  if (UI.view !== 'tiers') $('#selBar').hidden = true;
+}
+
+// ---------- Accueil ----------
+const ICON_TIERS = '<svg viewBox="0 0 24 24"><path d="M4 6h8M4 12h12M4 18h16"/></svg>';
+const ICON_TOP = '<svg viewBox="0 0 24 24"><path d="M8 4h8v5a4 4 0 0 1-8 0V4zM8 6H5a2 2 0 0 0 0 3 3 3 0 0 0 3 2M16 6h3a2 2 0 0 1 0 3 3 3 0 0 1-3 2M12 13v4M8 21h8M10 17h4"/></svg>';
+
+function homeCard(view, title, desc, meta, icon, cls) {
+  return h('button', { class: 'home-card ' + cls, dataset: { go: view }, type: 'button' },
+    h('span', { class: 'hc-ic' }, svgEl(icon)),
+    h('b', {}, title),
+    h('span', { class: 'hc-d' }, desc),
+    h('span', { class: 'hc-m' }, meta));
+}
+
+function renderHome() {
+  showView();
+  const s = (n) => (n > 1 ? 's' : '');
+  const nL = db.lists.length, nT = db.tops.length;
+  const l = db.lists.find((x) => x.id === db.cur), t = db.tops.find((x) => x.id === db.curTop);
+  const recent = [];
+  if (l && Object.keys(l.items).length) recent.push(h('button', { class: 'hc-recent', dataset: { go: 'tiers', id: l.id }, type: 'button' }, h('i', {}, svgEl(ICON_TIERS)), h('span', {}, h('small', {}, 'Tier list'), h('b', {}, l.name)), h('em', {}, `${Object.keys(l.items).length} cartes`)));
+  if (t) recent.push(h('button', { class: 'hc-recent', dataset: { go: 'top', id: t.id }, type: 'button' }, h('i', {}, svgEl(ICON_TOP)), h('span', {}, h('small', {}, 'Top'), h('b', {}, t.name)), h('em', {}, `${t.slots.filter(Boolean).length} / ${t.size}`)));
+  $('#homeView').replaceChildren(
+    h('h2', { class: 'home-title' }, 'Que veux-tu faire ?'),
+    h('div', { class: 'home-grid' },
+      homeCard('tiers', 'Tier lists', 'Classe tes animés et tes personnages par niveaux : S, A, B…', `${nL} liste${s(nL)}`, ICON_TIERS, 'c-tier'),
+      homeCard('top', 'Tops', 'Fais ton top 5, 10 ou 15, avec un vrai podium.', nT ? `${nT} top${s(nT)}` : 'Crée ton premier top', ICON_TOP, 'c-top')),
+    recent.length ? h('div', { class: 'home-recent' }, h('div', { class: 'hr-t' }, 'Reprendre'), ...recent) : null);
+}
+
+$('#homeView').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-go]');
+  if (!b) return;
+  if (b.dataset.id) { if (b.dataset.go === 'top') db.curTop = b.dataset.id; else db.cur = b.dataset.id; save(); }
+  go(b.dataset.go);
+});
+
+// ---------- Tops ----------
+const curTop = () => db.tops.find((t) => t.id === db.curTop) || db.tops[0] || null;
+const CROWN = '<svg viewBox="0 0 24 24"><path d="M3 8l4.5 4L12 5l4.5 7L21 8l-2 11H5L3 8z"/></svg>';
+let topSortables = [];
+
+// les places se remplissent de gauche à droite, sans trou
+function compactSlots(list) {
+  const keys = list.slots.filter(Boolean);
+  list.slots = keys.concat(Array(Math.max(0, list.size - keys.length)).fill(null));
+}
+
+function topSlot(top, i) {
+  const k = top.slots[i], it = k && top.items[k], rank = i + 1;
+  const cls = 'tp-slot r' + Math.min(rank, 4);
+  const badge = h('span', { class: 'tp-rank' }, String(rank));
+  if (!it) {
+    return h('div', { class: cls + ' empty', dataset: { k: '', i: String(i) } }, badge,
+      h('button', { class: 'tp-add', type: 'button', 'aria-label': 'Ajouter à la place ' + rank }, h('i', {}, '+'), h('small', {}, 'Ajouter')));
+  }
+  return h('div', { class: cls + ' filled', dataset: { k, i: String(i) }, title: it.t },
+    rank === 1 ? h('span', { class: 'tp-crown' }, svgEl(CROWN)) : null,
+    h('div', { class: 'tp-card' },
+      h('img', { src: imgUrl(it.i), alt: it.t, loading: 'lazy', draggable: 'false' }),
+      it.m && it.m.length > 1 ? h('span', { class: 'cnt' }, '×' + it.m.length) : null),
+    badge,
+    h('span', { class: 'tp-name' }, it.t));
+}
+
+function renderTop() {
+  showView();
+  renderTabs();
+  topSortables.forEach((s) => s.destroy());
+  topSortables = [];
+  const view = $('#topView'), top = curTop();
+  if (!top) {
+    view.replaceChildren(h('div', { class: 'tp-empty' },
+      h('div', { class: 'big' }, '🏆'), h('p', {}, 'Aucun top pour l’instant'),
+      h('small', {}, 'Crée ton top 5, 10 ou 15 : chaque place est numérotée, avec un vrai podium pour les trois premiers.'),
+      h('button', { class: 'primary', id: 'tpNew', type: 'button' }, 'Créer mon premier top')));
+    return;
+  }
+  const filled = top.slots.filter(Boolean).length;
+  // le podium est rangé dans l'ordre d'affichage : 2e, 1er, 3e
+  const podium = [1, 0, 2].filter((i) => i < top.size).map((i) => topSlot(top, i));
+  const rest = top.slots.slice(3).map((_, j) => topSlot(top, j + 3));
+  view.replaceChildren(
+    h('div', { class: 'board-tools' },
+      h('span', { class: 'tp-count' }, `${filled} / ${top.size} places`),
+      h('span', { class: 'tp-btns' },
+        h('button', { class: 'share-btn', id: 'tpFill', type: 'button' }, svgEl(IMPORT_ICON), 'Remplir depuis une tier list'),
+        h('button', { class: 'share-btn', type: 'button' }, svgEl(SHARE_ICON), 'Partager'))),
+    h('button', { class: 'add-anime', type: 'button' }, svgEl('<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>'),
+      h('span', { class: 'aa-t' }, top.type === 'char' ? 'Rechercher un personnage pour mon top…' : 'Rechercher un animé pour mon top…'), h('kbd', {}, '/'), h('span', { class: 'aa-b' }, 'Ajouter')),
+    h('div', { class: 'tp-wrap' }, h('div', { class: 'tp-podium' }, podium), rest.length ? h('div', { class: 'tp-rest' }, rest) : null));
+
+  for (const el of view.querySelectorAll('.tp-podium, .tp-rest')) {
+    topSortables.push(new Sortable(el, {
+      group: 'top', animation: 160, forceFallback: true, fallbackOnBody: true, fallbackTolerance: 3,
+      delay: 160, delayOnTouchOnly: true, touchStartThreshold: 6, emptyInsertThreshold: 30, swapThreshold: 0.6,
+      filter: '.empty', preventOnFilter: false, // une place vide ne se déplace pas
+      ghostClass: 'sortable-ghost', chosenClass: 'sortable-chosen',
+      onEnd: () => { lastDrag = Date.now(); syncTop(); },
+    }));
+  }
+}
+
+// relit le classement après un glisser-déposer : podium (2e, 1er, 3e) puis le reste
+function syncTop() {
+  const top = curTop();
+  const keys = (sel) => [...document.querySelectorAll(sel + ' .tp-slot')].map((c) => c.dataset.k);
+  const flat = [...keys('.tp-podium'), ...keys('.tp-rest')];
+  const rank = flat.length >= 3 ? [flat[1], flat[0], flat[2], ...flat.slice(3)] : flat;
+  top.slots = rank.filter(Boolean);
+  compactSlots(top);
+  save(); renderTop();
+}
+
+$('#topView').addEventListener('click', (e) => {
+  if (e.target.closest('#tpNew')) { openTop(null); return; }
+  if (e.target.closest('#tpFill')) { openFill(); return; }
+  if (e.target.closest('.share-btn')) { openShare(); return; }
+  if (e.target.closest('.add-anime') || e.target.closest('.tp-add')) { openSearch(); return; }
+  const slot = e.target.closest('.tp-slot.filled');
+  if (slot && Date.now() - lastDrag > 300) openFiche(slot.dataset.k);
+});
+
+// ----- créer / modifier un top
+const TS = { size: 10, type: 'anime' };
+let editTopId = null;
+
+function renderTopDialog() {
+  $('#topSize').replaceChildren(...[5, 10, 15].map((n) => h('button', { class: 'sw-pill' + (TS.size === n ? ' on' : ''), dataset: { tsz: String(n) }, type: 'button' }, 'Top ' + n)));
+  const opt = (t, title, desc) => h('button', { class: 'imp-opt' + (TS.type === t ? ' on' : ''), dataset: { tty: t }, type: 'button' },
+    h('i', { class: 'rd' }), h('span', {}, h('b', {}, title), h('small', {}, desc)));
+  $('#topType').replaceChildren(opt('anime', 'Animés', 'Affiches d’animés, saisons regroupées par licence.'), opt('char', 'Personnages', 'Portraits de personnages, cherchés sur AniList.'));
+}
+$('#topSize').addEventListener('click', (e) => { const b = e.target.closest('[data-tsz]'); if (b) { TS.size = Number(b.dataset.tsz); renderTopDialog(); } });
+$('#topType').addEventListener('click', (e) => { const b = e.target.closest('[data-tty]'); if (b) { TS.type = b.dataset.tty; renderTopDialog(); } });
+
+let topDelArmed = false;
+function openTop(id) {
+  const dlg = $('#dlgTop');
+  editTopId = id;
+  topDelArmed = false;
+  $('#topDel').textContent = 'Supprimer';
+  const t = id && db.tops.find((x) => x.id === id);
+  TS.size = t ? t.size : 10;
+  TS.type = t ? t.type : 'anime';
+  $('#topTitle').textContent = t ? 'Modifier le top' : 'Nouveau top';
+  $('#topOk').textContent = t ? 'OK' : 'Créer';
+  $('#topName').value = t ? t.name : '';
+  dlg.classList.toggle('is-new', !t);
+  dlg.returnValue = '';
+  renderTopDialog();
+  dlg.showModal();
+  $('#topName').focus();
+}
+$('#dlgTop form').addEventListener('submit', (e) => {
+  if (e.submitter?.value !== 'ok') return;
+  const name = $('#topName').value.trim() || `Mon top ${TS.size}`;
+  if (editTopId) {
+    const t = db.tops.find((x) => x.id === editTopId);
+    t.name = name;
+    if (TS.size !== t.size) { // réduire un top retire les dernières places
+      t.slots.slice(TS.size).filter(Boolean).forEach((k) => delete t.items[k]);
+      t.slots = t.slots.slice(0, TS.size);
+      t.size = TS.size;
+      compactSlots(t);
+    }
+  } else {
+    const t = { id: uid(), name, type: TS.type, size: TS.size, items: {}, slots: Array(TS.size).fill(null), pool: [], tiers: [] };
+    db.tops.push(t); db.curTop = t.id;
+  }
+  save(); render();
+});
+$('#topDel').onclick = () => {
+  if (!topDelArmed) { topDelArmed = true; $('#topDel').textContent = 'Sûr ? Appuie pour supprimer'; return; }
+  db.tops = db.tops.filter((t) => t.id !== editTopId);
+  if (db.curTop === editTopId) db.curTop = db.tops[0]?.id || null;
+  editTopId = null;
+  $('#dlgTop').close('deleted');
+  save(); render();
+};
+
+// ----- remplir un top depuis une tier list (S d'abord, puis A, B…)
+const FL = { src: null };
+function fillSources() {
+  const top = curTop();
+  return db.lists.filter((l) => (l.type || 'anime') === top.type && l.tiers.some((t) => t.items.some((k) => l.items[k])));
+}
+function renderFillSources() {
+  const lists = fillSources();
+  if (!lists.some((l) => l.id === FL.src)) FL.src = lists[0]?.id || null;
+  $('#flSrc').replaceChildren(
+    h('div', { class: 'imp-q' }, 'À partir de quelle tier list ?'),
+    ...(lists.length
+      ? lists.map((l) => h('button', { class: 'imp-opt' + (FL.src === l.id ? ' on' : ''), dataset: { src: l.id }, type: 'button' },
+        h('i', { class: 'rd' }), h('span', {}, h('b', {}, l.name), h('small', {}, `${l.tiers.reduce((n, t) => n + t.items.filter((k) => l.items[k]).length, 0)} cartes rangées dans les tiers`))))
+      : [h('p', { class: 'imp-note' }, 'Aucune de tes tier lists de ce type n’a encore de cartes rangées dans les tiers. Classe d’abord quelques animés (ou personnages), puis reviens ici.')]));
+  $('#flGo').disabled = !lists.length;
+}
+$('#flSrc').addEventListener('click', (e) => { const b = e.target.closest('[data-src]'); if (b) { FL.src = b.dataset.src; renderFillSources(); } });
+function openFill() {
+  const top = curTop();
+  if (!top.slots.includes(null)) { toast('Ton top est déjà complet'); return; }
+  $('#flState').hidden = true;
+  renderFillSources();
+  $('#dlgFill').showModal();
+}
+$('#flGo').onclick = () => {
+  const top = curTop(), src = db.lists.find((l) => l.id === FL.src);
+  if (!src) return;
+  let added = 0;
+  outer: for (const t of src.tiers) for (const k of t.items) {
+    if (!src.items[k] || top.items[k]) continue;
+    const i = top.slots.indexOf(null);
+    if (i < 0) break outer;
+    top.items[k] = JSON.parse(JSON.stringify(src.items[k]));
+    top.slots[i] = k; added++;
+  }
+  save(); renderTop();
+  $('#dlgFill').close();
+  toast(added ? `${added} place${added > 1 ? 's' : ''} remplie${added > 1 ? 's' : ''} depuis « ${src.name} »` : 'Rien à ajouter : tout est déjà dans ton top');
+};
+$('#flClose').onclick = () => $('#dlgFill').close();
+
+// ----- image du top : podium + classement, même esprit que l'image des tier lists
+async function buildTopImage(top) {
+  try { await Promise.all([document.fonts.load('800 60px "Baloo 2"'), document.fonts.load('600 14px Inter')]); } catch { /* polices système */ }
+  const W = 1200, PAD = 24, IN = 34, GAP = 16;
+  const keys = top.slots.filter((k) => k && top.items[k]);
+  const P1 = [210, 298], P2 = [172, 244], R = [150, 213];
+  const perRow = 6, rest = keys.slice(3), restRows = Math.ceil(rest.length / perRow);
+  const podiumH = 46 + P1[1] + 70;
+  const restH = restRows ? restRows * (R[1] + 76) : 0;
+  const boxH = IN * 2 + podiumH + restH - (restRows ? 20 : 0);
+  const H = PAD * 2 + boxH + 5;
+
+  const imgs = new Map(await Promise.all(keys.map(async (k) => [k, await loadImage(imgUrl(top.items[k].i))])));
+  const cv = document.createElement('canvas');
+  cv.width = W; cv.height = H;
+  const ctx = cv.getContext('2d');
+  ctx.fillStyle = '#23262f'; ctx.fillRect(0, 0, W, H);
+  const x0 = PAD, y0 = PAD, w = W - PAD * 2;
+  rr(ctx, x0, y0 + 5, w, boxH, 18); ctx.fillStyle = 'rgba(0,0,0,.4)'; ctx.fill();
+  ctx.save(); rr(ctx, x0, y0, w, boxH, 18); ctx.clip();
+  ctx.fillStyle = '#1c1f27'; ctx.fillRect(x0, y0, w, boxH);
+  const halo = ctx.createRadialGradient(W / 2, y0 + IN + 46 + P1[1] / 2, 20, W / 2, y0 + IN + 46 + P1[1] / 2, 420); // halo doré derrière le 1er
+  halo.addColorStop(0, 'rgba(255,210,77,.28)'); halo.addColorStop(1, 'rgba(255,210,77,0)');
+  ctx.fillStyle = halo; ctx.fillRect(x0, y0, w, boxH);
+  ctx.restore();
+
+  const MEDAL = ['#ffd24d', '#cfd6e4', '#e0a070'];
+  const fit = (t, max, font) => { ctx.font = font; if (ctx.measureText(t).width <= max) return t; while (t.length > 1 && ctx.measureText(t + '…').width > max) t = t.slice(0, -1); return t + '…'; };
+  const place = (k, rank, x, y, [pw, ph], big) => {
+    drawPoster(ctx, imgs.get(k), top.items[k].t, x, y, pw, ph);
+    const r = big ? 24 : 20, cx = x + pw / 2, cy = y + ph; // pastille du rang, à cheval sur le bas de l'affiche
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fillStyle = MEDAL[rank - 1] || '#4f8cff'; ctx.fill();
+    ctx.lineWidth = 3; ctx.strokeStyle = '#0f1117'; ctx.stroke();
+    ctx.fillStyle = rank <= 3 ? '#2a1a00' : '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+    ctx.font = `800 ${big ? 26 : 22}px "Baloo 2", sans-serif`; ctx.fillText(String(rank), cx, cy + (big ? 9 : 8));
+    ctx.fillStyle = '#e9ecf8';
+    const f = `700 ${big ? 17 : 14}px Inter, sans-serif`;
+    ctx.font = f; ctx.fillText(fit(top.items[k].t, pw + 20, f), cx, cy + r + (big ? 24 : 20));
+  };
+
+  const cx = W / 2, py = y0 + IN + 46;
+  if (keys[0]) {
+    place(keys[0], 1, cx - P1[0] / 2, py, P1, true);
+    ctx.fillStyle = '#ffd24d'; // couronne
+    const c = { x: cx, y: py - 14 };
+    ctx.beginPath(); ctx.moveTo(c.x - 24, c.y); ctx.lineTo(c.x - 17, c.y - 22); ctx.lineTo(c.x - 8, c.y - 8); ctx.lineTo(c.x, c.y - 28); ctx.lineTo(c.x + 8, c.y - 8); ctx.lineTo(c.x + 17, c.y - 22); ctx.lineTo(c.x + 24, c.y); ctx.closePath(); ctx.fill();
+    ctx.lineWidth = 3; ctx.strokeStyle = '#0f1117'; ctx.stroke();
+  }
+  if (keys[1]) place(keys[1], 2, cx - P1[0] / 2 - 46 - P2[0], py + P1[1] - P2[1], P2, false);
+  if (keys[2]) place(keys[2], 3, cx + P1[0] / 2 + 46, py + P1[1] - P2[1], P2, false);
+
+  const ry = py + P1[1] + 70;
+  const rowW = perRow * R[0] + (perRow - 1) * GAP, rx = (W - rowW) / 2;
+  rest.forEach((k, i) => place(k, i + 4, rx + (i % perRow) * (R[0] + GAP), ry + Math.floor(i / perRow) * (R[1] + 76), R, false));
+
+  rr(ctx, x0, y0, w, boxH, 18); ctx.lineWidth = 2; ctx.strokeStyle = '#12141b'; ctx.stroke();
+  return cv;
+}
 
 // ---------- Démarrage ----------
 document.body.classList.add('boot'); // animation d'arrivée, retirée ensuite pour ne pas se rejouer
