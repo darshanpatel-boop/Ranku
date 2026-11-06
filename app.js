@@ -72,13 +72,14 @@ const cur = () => db.lists.find((l) => l.id === db.cur) || db.lists[0];
 
 // ---------- Affichage ----------
 let sortables = [];
+let freshKey = null, freshTier = null; // pour animer ce qui vient d'être ajouté
 let imgBase = 'https://cdn.myanimelist.net/images/anime/';
 
 const imgUrl = (i) => (i.startsWith('http') ? i : imgBase + i);
 
 function card(list, key) {
   const it = list.items[key];
-  return h('div', { class: 'card', dataset: { k: key }, title: it.t },
+  return h('div', { class: 'card' + (key === freshKey ? ' pop' : ''), dataset: { k: key }, title: it.t },
     h('img', { src: imgUrl(it.i), alt: it.t, loading: 'lazy', draggable: 'false' }),
     h('span', { class: 'tt' }, it.t));
 }
@@ -95,7 +96,7 @@ function render() {
   // trait coloré continu sur le bord gauche : un seul dégradé de bas en haut des tiers
   const bar = `linear-gradient(180deg, ${list.tiers.map((t, i) => `${t.color} ${Math.round(((i + 0.5) / list.tiers.length) * 100)}%`).join(', ')})`;
   board.append(h('div', { class: 'tiers', style: `--bar:${bar}` }, list.tiers.map((t, i) =>
-    h('div', { class: 'tier', style: `--c1:${t.color};--c2:${shade(t.color, -0.2)}` },
+    h('div', { class: 'tier' + (t.id === freshTier ? ' pop' : ''), dataset: { id: t.id }, style: `--i:${i};--c1:${t.color};--c2:${shade(t.color, -0.2)}` },
       h('div', { class: 'mv' },
         h('button', { dataset: { mv: '-1', tier: t.id }, 'aria-label': 'Monter ce tier', type: 'button', ...(i === 0 ? { disabled: '' } : {}) }, '▲'),
         h('button', { dataset: { mv: '1', tier: t.id }, 'aria-label': 'Descendre ce tier', type: 'button', ...(i === list.tiers.length - 1 ? { disabled: '' } : {}) }, '▼')),
@@ -109,6 +110,7 @@ function render() {
       h('div', { class: 'note' }, 'Non classé'),
       h('div', { class: 'zone', dataset: { zone: 'pool' } }, list.pool.filter((k) => list.items[k]).map((k) => card(list, k)))));
 
+  freshKey = null; freshTier = null;
   board.querySelectorAll('.zone').forEach((z) => {
     sortables.push(new Sortable(z, {
       group: 'items',
@@ -204,23 +206,32 @@ function applyDraft() {
   t.desc = draft.desc.trim();
   t.color = draft.color;
 }
-$('#dlgTier').addEventListener('close', () => {
-  const ok = $('#dlgTier').returnValue === 'ok';
+// Validation (bouton OK ou touche Entrée) : crée ou met à jour le tier tout de suite.
+$('#formTier').addEventListener('submit', (e) => {
+  if (e.submitter?.value !== 'ok') return;
   if (editTier) applyDraft();
-  else if (ok) cur().tiers.push({ id: uid(), name: draft.name.trim(), color: draft.color, desc: draft.desc.trim(), items: [] });
+  else { freshTier = uid(); cur().tiers.push({ id: freshTier, name: draft.name.trim(), color: draft.color, desc: draft.desc.trim(), items: [] }); }
   save(); render();
 });
+// Fermeture autrement (Échap, clic à côté) : en modification, les changements déjà faits sont gardés.
+$('#dlgTier').addEventListener('close', () => { if (editTier) { applyDraft(); save(); render(); } });
 function moveTier(d) {
   applyDraft();
   swapTier(editTier, d);
 }
 function swapTier(id, d) {
+  const before = new Map([...document.querySelectorAll('#board .tier')].map((e) => [e.dataset.id, e.getBoundingClientRect().top]));
   const ts = cur().tiers;
   const i = ts.findIndex((x) => x.id === id);
   const j = i + d;
   if (j < 0 || j >= ts.length) return;
   [ts[i], ts[j]] = [ts[j], ts[i]];
   save(); render();
+  // les deux tiers glissent vers leur nouvelle place
+  document.querySelectorAll('#board .tier').forEach((e) => {
+    const dy = (before.get(e.dataset.id) ?? 0) - e.getBoundingClientRect().top;
+    if (dy) e.animate([{ transform: `translateY(${dy}px)` }, { transform: 'none' }], { duration: 280, easing: 'cubic-bezier(.2,.8,.2,1)' });
+  });
 }
 $('#tierUp').onclick = () => moveTier(-1);
 $('#tierDown').onclick = () => moveTier(1);
@@ -264,8 +275,8 @@ function openList(id) {
   $('#listName').focus();
 }
 $('#listOk').addEventListener('click', (e) => { if (!$('#listName').value.trim()) { e.preventDefault(); $('#listName').focus(); } });
-$('#dlgList').addEventListener('close', () => {
-  if ($('#dlgList').returnValue !== 'ok') return;
+$('#dlgList form').addEventListener('submit', (e) => {
+  if (e.submitter?.value !== 'ok') return;
   const name = $('#listName').value.trim();
   if (!name) return;
   if (editList) db.lists.find((l) => l.id === editList).name = name;
@@ -309,7 +320,6 @@ function loadData() {
       const n = [r[0], ...r[6]].map((x) => ' ' + norm(x).replace(/^(l|le|la|les|the|un|une) /, '') + ' ');
       return { r, n, h: ' ' + norm(r[0] + ' ' + r[6].join(' ')) + ' ' };
     });
-    render(); // les affiches stockées en chemin court ont maintenant leur base
   });
   return loading;
 }
@@ -360,6 +370,7 @@ function addItem(key, title, image) {
   if (list.items[key]) return false;
   list.items[key] = { t: title, i: image };
   list.pool.push(key);
+  freshKey = key;
   save();
   render();
   return true;
@@ -402,9 +413,9 @@ function srChip(added) {
       : [h('i', { class: 'ic' }, '+'), 'Ajouter']);
 }
 
-function srItem(it, q) {
+function srItem(it, q, n = 0) {
   const added = !!cur().items[it.key];
-  return h('div', { class: 'sr-it' + (added ? ' added' : ''), dataset: { k: it.key } },
+  return h('div', { class: 'sr-it' + (added ? ' added' : ''), dataset: { k: it.key }, style: `--n:${Math.min(n, 14)}` },
     h('div', { class: 'sr-pic' }, h('img', { src: imgUrl(it.img), alt: '', loading: 'lazy' }), h('div', { class: 'sr-ov' }, srChip(added))),
     h('b', {}, hlNodes(it.title, q)),
     h('span', { class: 'sr-meta' }, it.sub));
@@ -440,8 +451,8 @@ function renderSearch(animate) {
       S.aniState === '' || S.aniState === 'error' ? h('button', { class: 'sw-go', id: 'srAni2', type: 'button' }, 'Chercher sur AniList') : null));
     $('#srCnt').textContent = '';
   } else {
-    grid.replaceChildren(...loc.map((it) => srItem(it, q)),
-      ani.length ? h('div', { class: 'sw-sep' }, 'Sur AniList') : null, ...ani.map((it) => srItem(it, q)));
+    grid.replaceChildren(...loc.map((it, i) => srItem(it, q, i)),
+      ani.length ? h('div', { class: 'sw-sep' }, 'Sur AniList') : null, ...ani.map((it, i) => srItem(it, q, i)));
     $('#srCnt').textContent = `${loc.length + ani.length} résultat${loc.length + ani.length > 1 ? 's' : ''}`;
   }
   grid.scrollTop = top;
@@ -510,7 +521,7 @@ function toggleItem(it) {
     const added = !!cur().items[it.key];
     el.classList.toggle('added', added);
     el.querySelector('.sr-ov').replaceChildren(srChip(added));
-    if (added) el.querySelector('.sr-chip').classList.add('just'); // pas de « Retirer » tant que la souris reste sur le bouton
+    if (added) el.querySelector('.sr-chip').classList.add('just', 'pop'); // pas de « Retirer » tant que la souris reste sur le bouton
     if (added && S.hide) { el.classList.add('leaving'); setTimeout(() => { el.remove(); updateMeta(); }, 260); }
   }
   updateMeta();
@@ -573,6 +584,8 @@ $('#dlgSearch').addEventListener('close', () => {
 });
 
 // ---------- Démarrage ----------
+document.body.classList.add('boot'); // animation d'arrivée, retirée ensuite pour ne pas se rejouer
+setTimeout(() => document.body.classList.remove('boot'), 1400);
 render();
 loadData().catch(() => {}); // précharge la base pour que les affiches et la recherche soient prêtes
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
