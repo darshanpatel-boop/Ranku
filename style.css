@@ -297,3 +297,11 @@ button.danger { background: #3a2328; color: #ff9a9a; border: 2px solid var(--lin
 /* titres de section en petites capitales espacées (comme « DANS LA MÊME RUBRIQUE ») */
 .sw-sep, .sw-cnt { text-transform: uppercase; letter-spacing: .08em; font-weight: 800; font-size: 11px; color: #8f98b8; }
 .sw-sep { border-top-color: var(--line); }
+
+/* ===== Barre du haut façon Croc'Savoir : fond plus clair, trait sombre dessous, logo cerné avec son icône ===== */
+.top { background: #2d313c; border-bottom: 2px solid var(--line); padding-top: calc(10px + env(safe-area-inset-top)); padding-bottom: 10px; gap: 6px 22px; }
+.brand { display: flex; align-items: center; gap: 0; font-size: 32px; letter-spacing: .01em; }
+.brand .mark { width: 38px; height: 38px; margin-right: 10px; border-radius: 10px; border: 2px solid var(--line); box-shadow: 0 3px 0 var(--line); background: #16162a; }
+.brand span, .brand b { -webkit-text-stroke: 4px var(--line); paint-order: stroke fill; text-shadow: 0 3px 0 var(--line); }
+.list-tabs { gap: 8px; }
+.chip { font-size: 15px; padding: 8px 16px; }
