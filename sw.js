@@ -1,5 +1,5 @@
 // Service worker : le site (coque + base) est mis en cache pour fonctionner hors ligne.
-const CACHE = 'tierlist-v1';
+const CACHE = 'ranku-v1';
 const SHELL = [
   './', 'index.html', 'style.css', 'app.js', 'manifest.webmanifest',
   'vendor/Sortable.min.js', 'data/anime.json',

@@ -1,4 +1,4 @@
-# Tier list animés (PWA)
+# Ranku — tier list animés (PWA)
 
 Site web installable sur téléphone pour faire des tier lists d'animés (et de personnages), avec l'API GraphQL d'AniList. Projet séparé de Croc'Savoir (dossier C:\Users\darsh\culture-g).
 

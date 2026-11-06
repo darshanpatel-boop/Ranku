@@ -1,6 +1,6 @@
 {
-  "name": "Tier list animés",
-  "short_name": "Tier list",
+  "name": "Ranku",
+  "short_name": "Ranku",
   "description": "Fais tes tier lists d'animés",
   "start_url": "./",
   "scope": "./",
