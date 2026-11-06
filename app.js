@@ -111,7 +111,7 @@ function render() {
     h('button', { class: 'add-anime', type: 'button' }, svgEl('<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>'), h('span', { class: 'aa-t' }, 'Rechercher un animé à ajouter…'), h('kbd', {}, '/'), h('span', { class: 'aa-b' }, 'Ajouter')),
     h('div', { class: 'import-row' }, h('button', { class: 'import-btn', type: 'button' }, svgEl(IMPORT_ICON), 'Importer ma liste AniList')),
     h('div', { class: 'cork' },
-      h('div', { class: 'note' }, 'Non classé'),
+      h('div', { class: 'note' }, 'Non classé', h('b', { class: 'cnt-n' }, String(list.pool.filter((k) => list.items[k]).length))),
       h('div', { class: 'zone', dataset: { zone: 'pool' } }, list.pool.filter((k) => list.items[k]).map((k) => card(list, k)))));
 
   freshKey = null; freshTier = null;
@@ -145,6 +145,8 @@ function syncFromDom() {
   }
   save();
   updateBar();
+  const cn = $('.cork .note .cnt-n');
+  if (cn) cn.textContent = String(list.pool.filter((k) => list.items[k]).length);
 }
 
 function detach(list, key) {
@@ -932,27 +934,37 @@ async function fetchCompleted(user, onProgress) {
   return medias;
 }
 
-// transforme les animés AniList en cartes : une carte par licence (retrouvée grâce à la base), les autres séries TV telles quelles
-function buildImportedList(user, medias) {
-  const stats = { anime: medias.length, cards: 0, merged: 0, ignored: 0 };
-  const list = newList('AniList · ' + user);
-  const seen = new Set();
+// Ajoute les animés AniList à une liste SANS toucher à ce qui y est déjà : seuls les nouveaux arrivent dans « Non classé ».
+// Une licence déjà présente reçoit juste ses nouvelles saisons ; un animé déjà placé (même séparé) n'est jamais remis.
+function importInto(list, medias) {
+  const stats = { anime: medias.length, added: 0, present: 0, updated: 0, merged: 0, ignored: 0 };
+  const fresh = new Set(); // cartes créées pendant cet import
   for (const m of medias) {
     const i = rowByAnilist.get(m.id) ?? (m.idMal ? rowByMal.get(m.idMal) : undefined);
     let key, item;
     if (i !== undefined) {
       const r = animeData.rows[i], gid = r[8];
-      if (gid) { const g = groupRows(gid), rep = g[0]; key = 'g' + rowKey(rep); item = { t: rep[0], i: rep[3], m: g.map(rowKey) }; }
-      else { key = rowKey(r); item = { t: r[0], i: r[3] }; }
+      if (gid) {
+        const g = groupRows(gid), keys = g.map(rowKey), have = groupItemKey(list, gid);
+        if (have) {
+          if (fresh.has(have)) { stats.merged++; continue; } // deux saisons de la même licence dans ta liste AniList
+          const card = list.items[have], add = keys.filter((k) => !card.m.includes(k) && !list.items[k]);
+          if (add.length) { card.m.push(...add); stats.updated++; } else stats.present++;
+          continue;
+        }
+        if (keys.some((k) => list.items[k])) { stats.present++; continue; } // une saison est déjà dans la liste (carte séparée)
+        key = 'g' + rowKey(g[0]); item = { t: g[0][0], i: g[0][3], m: keys };
+      } else { key = rowKey(r); item = { t: r[0], i: r[3] }; }
     } else if (m.format === 'TV' || m.format === 'TV_SHORT') { // série absente de la base (très récente)
       key = 'a' + m.id; item = { t: m.title.english || m.title.romaji, i: m.coverImage.large };
     } else { stats.ignored++; continue; } // film / OVA / ONA lié à une série : pas dans les licences
-    if (seen.has(key)) { stats.merged++; continue; }
-    seen.add(key); list.items[key] = item; list.pool.push(key);
+    if (list.items[key]) { stats.present++; continue; }
+    list.items[key] = item; list.pool.push(key); fresh.add(key); stats.added++;
   }
-  stats.cards = list.pool.length;
-  return { list, stats };
+  return stats;
 }
+
+const IMP = { dest: 'current' };
 
 function setImport(kind, text) {
   const s = $('#impState');
@@ -961,10 +973,24 @@ function setImport(kind, text) {
   s.textContent = text || '';
 }
 
+function renderImportDest() {
+  $('#impDest').replaceChildren(
+    h('button', { class: 'sw-pill' + (IMP.dest === 'current' ? ' on' : ''), dataset: { dest: 'current' }, type: 'button' }, `Dans « ${cur().name} »`),
+    h('button', { class: 'sw-pill' + (IMP.dest === 'new' ? ' on' : ''), dataset: { dest: 'new' }, type: 'button' }, 'Nouvelle liste'));
+}
+$('#impDest').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-dest]');
+  if (b) { IMP.dest = b.dataset.dest; renderImportDest(); }
+});
+
 function openImport() {
   setImport('', '');
+  IMP.dest = 'current';
+  renderImportDest();
+  $('#impUser').value = cur().ani || db.ani || '';
   $('#impGo').disabled = false;
   $('#impGo').textContent = 'Importer';
+  $('#impGo').onclick = runImport;
   $('#dlgImport').showModal();
   $('#impUser').focus();
   loadData().catch(() => {});
@@ -987,12 +1013,19 @@ async function runImport() {
     await loadData();
     const medias = await fetchCompleted(user, (n) => setImport('load', `${n} animés récupérés…`));
     if (!medias.length) { setImport('err', 'Aucun animé terminé trouvé pour ce pseudo.'); $('#impGo').disabled = false; return; }
-    const { list, stats } = buildImportedList(user, medias);
-    db.lists.push(list); db.cur = list.id;
+    let list = cur();
+    if (IMP.dest === 'new') { list = newList('AniList · ' + user); db.lists.push(list); db.cur = list.id; }
+    const stats = importInto(list, medias);
+    list.ani = user; db.ani = user; // on s'en souvient pour le prochain import
     save(); render();
-    const parts = [`${stats.anime} animés terminés → ${stats.cards} cartes dans « Non classé » de la liste « ${list.name} ».`];
-    if (stats.merged) parts.push(`${stats.merged} saisons regroupées avec leur licence.`);
-    if (stats.ignored) parts.push(`${stats.ignored} films / OVA liés à une série ont été laissés de côté.`);
+
+    const s = (n) => (n > 1 ? 's' : '');
+    const parts = [`${stats.anime} animés terminés sur AniList.`];
+    parts.push(stats.added ? `${stats.added} nouvelle${s(stats.added)} carte${s(stats.added)} dans « Non classé » de « ${list.name} ».` : 'Rien de nouveau à ajouter.');
+    if (stats.present) parts.push(`${stats.present} déjà dans ta liste, laissé${s(stats.present)} tel${s(stats.present)} quel${s(stats.present)}.`);
+    if (stats.updated) parts.push(`${stats.updated} licence${s(stats.updated)} ${stats.updated > 1 ? 'ont' : 'a'} reçu de nouvelles saisons.`);
+    if (stats.merged) parts.push(`${stats.merged} saison${s(stats.merged)} regroupée${s(stats.merged)} avec leur licence.`);
+    if (stats.ignored) parts.push(`${stats.ignored} film${s(stats.ignored)} / OVA lié${s(stats.ignored)} à une série laissé${s(stats.ignored)} de côté.`);
     setImport('ok', parts.join(' '));
     $('#impGo').textContent = 'Terminé';
     $('#impGo').disabled = false;

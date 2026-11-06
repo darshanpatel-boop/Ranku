@@ -411,3 +411,8 @@ button.danger { background: #3a2328; color: #ff9a9a; border: 2px solid var(--lin
 .import-btn svg { width: 17px; height: 17px; stroke: currentColor; fill: none; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
 .import-btn:hover { background: #454b62; }
 .import-btn:active { translate: 0 2px; scale: 1; box-shadow: 0 1px 0 var(--line); }
+
+/* compteur de « Non classé » et choix de destination de l'import */
+.cork .note { display: flex; align-items: center; gap: 8px; }
+.cork .note .cnt-n { min-width: 24px; padding: 0 8px; border-radius: 99px; background: rgba(58,42,0,.85); color: #ffe680; font: 800 14px/22px 'Inter', sans-serif; text-align: center; }
+.imp-dest { display: flex; flex-wrap: wrap; gap: 8px; }
