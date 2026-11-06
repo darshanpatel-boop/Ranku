@@ -23,7 +23,7 @@
 <footer class="site-foot"><button id="btnAbout" class="link" type="button">À propos et sources des données</button></footer>
 
 <dialog id="dlgSearch" class="swin">
-  <div class="sw-head"><h2>Ajouter des animés</h2><button class="sw-x" id="srClose" type="button" aria-label="Fermer">✕</button></div>
+  <div class="sw-head"><h2 id="srTitle">Ajouter des animés</h2><button class="sw-x" id="srClose" type="button" aria-label="Fermer">✕</button></div>
   <div class="sw-bar"><label class="sw-srch">
     <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
     <input id="q" type="text" placeholder="Titre d'un animé…" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search">
@@ -100,10 +100,24 @@
   </div>
 </dialog>
 
+<dialog id="dlgChars" class="modal">
+  <div class="imp-in">
+    <h2>Personnages principaux de mes animés</h2>
+    <p class="imp-note">Choisis une de tes listes d’animés : les personnages <b>principaux</b> de ses animés arrivent dans « Non classé ». Ce qui est déjà dans cette liste ne bouge pas. Les méchants n’ont pas toujours le rôle « principal » : cherche-les avec la barre de recherche.</p>
+    <div class="imp-dest" id="chSrc"></div>
+    <div id="chState" class="imp-state" hidden></div>
+    <div class="foot">
+      <button class="ghost" id="chClose" type="button">Fermer</button>
+      <button class="primary" id="chGo" type="button">Ajouter</button>
+    </div>
+  </div>
+</dialog>
+
 <dialog id="dlgList" class="modal">
   <form method="dialog">
     <h2 id="listTitle">Nouvelle tier list</h2>
     <label class="fld">Nom <input id="listName" maxlength="30" autocomplete="off" placeholder="Ex. Mes animés 2025"></label>
+    <div class="imp-dest type-row" id="listType"></div>
     <div class="foot">
       <div class="only-edit"><button type="button" id="listDel" class="danger sm">Supprimer</button></div>
       <button value="ok" id="listOk" class="primary">Créer</button>

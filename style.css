@@ -427,3 +427,10 @@ button.danger { background: #3a2328; color: #ff9a9a; border: 2px solid var(--lin
 .imp-opt.on { background: #26335a; border-color: var(--accent); }
 .imp-opt.on .rd { background: var(--accent); border-color: var(--accent); box-shadow: inset 0 0 0 3px #26335a; }
 .imp-opt:active { translate: 0 2px; scale: 1; box-shadow: 0 1px 0 var(--line); }
+
+/* listes de personnages */
+.type-row { display: none; }
+.is-new .type-row { display: flex; }
+.chip .ty { display: inline-flex; margin-right: 7px; opacity: .7; }
+.chip .ty svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2.4; stroke-linecap: round; }
+.sr-meta { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; }

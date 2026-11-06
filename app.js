@@ -46,9 +46,10 @@ const shade = (hex, k) => {
   return '#' + f(n >> 16) + f((n >> 8) & 255) + f(n & 255);
 };
 
-const newList = (name) => ({
+const newList = (name, type = 'anime') => ({
   id: uid(),
   name,
+  type,
   tiers: DEFAULT_TIERS.map(([n, c, d]) => ({ id: uid(), name: n, color: c, desc: d, items: [] })),
   pool: [],
   items: {}, // clé -> { t: titre, i: image }
@@ -108,8 +109,10 @@ function render() {
       h('div', { class: 'zone', dataset: { zone: t.id } }, t.items.filter((k) => list.items[k]).map((k) => card(list, k))))),
     h('button', { class: 'add-tier', type: 'button' }, '＋ Ajouter un tier')));
   board.append(
-    h('button', { class: 'add-anime', type: 'button' }, svgEl('<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>'), h('span', { class: 'aa-t' }, 'Rechercher un animé à ajouter…'), h('kbd', {}, '/'), h('span', { class: 'aa-b' }, 'Ajouter')),
-    h('div', { class: 'import-row' }, h('button', { class: 'import-btn', type: 'button' }, svgEl(IMPORT_ICON), 'Importer ma liste AniList')),
+    h('button', { class: 'add-anime', type: 'button' }, svgEl('<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>'), h('span', { class: 'aa-t' }, list.type === 'char' ? 'Rechercher un personnage à ajouter…' : 'Rechercher un animé à ajouter…'), h('kbd', {}, '/'), h('span', { class: 'aa-b' }, 'Ajouter')),
+    h('div', { class: 'import-row' }, list.type === 'char'
+      ? h('button', { class: 'import-btn chars-btn', type: 'button' }, svgEl(IMPORT_ICON), 'Ajouter les personnages principaux de mes animés')
+      : h('button', { class: 'import-btn', type: 'button' }, svgEl(IMPORT_ICON), 'Importer ma liste AniList')),
     h('div', { class: 'cork' },
       h('div', { class: 'note' }, 'Non classé', h('b', { class: 'cnt-n' }, String(list.pool.filter((k) => list.items[k]).length))),
       h('div', { class: 'zone', dataset: { zone: 'pool' } }, list.pool.filter((k) => list.items[k]).map((k) => card(list, k)))));
@@ -156,6 +159,7 @@ function detach(list, key) {
 
 $('#board').addEventListener('click', (e) => {
   if (e.target.closest('.share-btn')) { openShare(); return; }
+  if (e.target.closest('.chars-btn')) { openChars(); return; }
   if (e.target.closest('.import-btn')) { openImport(); return; }
   const card = e.target.closest('.card');
   if (card && Date.now() - lastDrag > 300) { openFiche(card.dataset.k); return; }
@@ -279,7 +283,7 @@ function renderTabs() {
     ...db.lists.map((l) => {
       const on = l.id === db.cur;
       return h('button', { class: 'chip' + (on ? ' on' : ''), dataset: { list: l.id }, type: 'button', title: on ? 'Renommer ou supprimer cette liste' : null },
-        l.name, on ? h('span', { class: 'ed' }, svgEl(PENCIL)) : null);
+        l.type === 'char' ? h('span', { class: 'ty' }, svgEl(USER_ICON)) : null, l.name, on ? h('span', { class: 'ed' }, svgEl(PENCIL)) : null);
     }));
   $('.chip.on', box)?.scrollIntoView({ inline: 'nearest', block: 'nearest' });
   placePill();
@@ -296,6 +300,7 @@ function openList(id) {
   $('#listOk').textContent = id ? 'OK' : 'Créer';
   $('#listName').value = id ? db.lists.find((l) => l.id === id).name : '';
   dlg.classList.toggle('is-new', !id);
+  listType = 'anime'; renderListType();
   dlg.returnValue = '';
   dlg.showModal();
   $('#listName').focus();
@@ -306,7 +311,7 @@ $('#dlgList form').addEventListener('submit', (e) => {
   const name = $('#listName').value.trim();
   if (!name) return;
   if (editList) db.lists.find((l) => l.id === editList).name = name;
-  else { const l = newList(name); db.lists.push(l); db.cur = l.id; }
+  else { const l = newList(name, listType); db.lists.push(l); db.cur = l.id; }
   save(); render();
 });
 $('#listDel').onclick = () => {
@@ -404,10 +409,11 @@ async function searchAniList(q) {
   return j.data.Page.media.filter((m) => !['MUSIC', 'SPECIAL'].includes(m.format));
 }
 
-function addItem(key, title, image, m) {
+function addItem(key, title, image, m, extra) {
   const list = cur();
   if (list.items[key]) return false;
   list.items[key] = m ? { t: title, i: image, m } : { t: title, i: image };
+  if (extra) Object.assign(list.items[key], extra);
   list.pool.push(key);
   freshKey = key;
   save();
@@ -462,7 +468,7 @@ function srItem(it, q, n = 0) {
   return h('div', { class: 'sr-it' + (added ? ' added' : '') + (it.gid ? ' stack' : ''), dataset: { k: it.key }, style: `--n:${Math.min(n, 14)}` },
     h('div', { class: 'sr-pic' }, h('img', { src: imgUrl(it.img), alt: '', loading: 'lazy' }), h('div', { class: 'sr-ov' }, srChip(added))),
     h('b', {}, hlNodes(it.title, q)),
-    h('span', { class: 'sr-meta' }, h('span', { class: 'sr-tag t-' + it.fmt }, TYPE_FR[it.fmt] || it.fmt), it.gid ? ` ${it.n} saisons` : (it.year ? ' ' + it.year : '')));
+    h('span', { class: 'sr-meta' }, it.char ? null : h('span', { class: 'sr-tag t-' + it.fmt }, TYPE_FR[it.fmt] || it.fmt), it.char ? it.sub : it.gid ? ` ${it.n} saisons` : (it.year ? ' ' + it.year : '')));
 }
 
 function renderSearch(animate) {
@@ -475,7 +481,7 @@ function renderSearch(animate) {
   S.byKey = new Map(all.map((it) => [it.key, it]));
 
   $('#srTools').replaceChildren(
-    ...PILLS.map(([k, n]) => h('button', { class: 'sw-pill' + (S.type === k ? ' on' : ''), dataset: { ty: k }, type: 'button' },
+    ...(list.type === 'char' ? [] : PILLS).map(([k, n]) => h('button', { class: 'sw-pill' + (S.type === k ? ' on' : ''), dataset: { ty: k }, type: 'button' },
       n, q.length >= 2 ? h('small', {}, String(all.filter((it) => inPill(it, k)).length)) : null)),
     h('span', { class: 'sw-tog' + (S.hide ? ' on' : ''), id: 'srTog' }, h('i'), 'Masquer ceux déjà ajoutés'));
 
@@ -485,14 +491,14 @@ function renderSearch(animate) {
 
   if (q.length < 2) {
     grid.replaceChildren(h('div', { class: 'sw-hint' },
-      h('div', { class: 'big' }, '🔎'), h('p', {}, 'Tape le titre d’un animé'),
-      h('small', {}, 'En français, en anglais ou en japonais : « L’Attaque des Titans » et « Shingeki no Kyojin » marchent tous les deux.')));
+      h('div', { class: 'big' }, '🔎'), h('p', {}, list.type === 'char' ? 'Tape le nom d’un personnage' : 'Tape le titre d’un animé'),
+      h('small', {}, list.type === 'char' ? 'Tous les personnages d’AniList, méchants compris. Essaie le nom tel qu’il s’écrit en romaji : « Gojo », « Luffy », « Eren »…' : 'En français, en anglais ou en japonais : « L’Attaque des Titans » et « Shingeki no Kyojin » marchent tous les deux.')));
     $('#srCnt').textContent = '';
   } else if (!loc.length && !ani.length) {
     grid.replaceChildren(h('div', { class: 'sw-hint' },
       h('div', { class: 'big' }, '🤔'), h('p', {}, `Rien dans la base pour « ${q} ».`),
-      h('small', {}, 'Les sorties très récentes ne sont pas toujours dedans.'),
-      S.aniState === '' || S.aniState === 'error' ? h('button', { class: 'sw-go', id: 'srAni2', type: 'button' }, 'Chercher sur AniList') : null));
+      h('small', {}, list.type === 'char' ? 'Essaie une autre orthographe (le nom en romaji).' : 'Les sorties très récentes ne sont pas toujours dedans.'),
+      list.type !== 'char' && (S.aniState === '' || S.aniState === 'error') ? h('button', { class: 'sw-go', id: 'srAni2', type: 'button' }, 'Chercher sur AniList') : null));
     $('#srCnt').textContent = '';
   } else {
     grid.replaceChildren(...loc.map((it, i) => srItem(it, q, i)),
@@ -502,7 +508,7 @@ function renderSearch(animate) {
   grid.scrollTop = top;
 
   const link = $('#srAni');
-  link.hidden = q.length < 2;
+  link.hidden = q.length < 2 || list.type === 'char';
   link.textContent = aniLabel;
   $('#srCount').textContent = S.session.size ? `${S.session.size} ajouté${S.session.size > 1 ? 's' : ''}` : '';
 }
@@ -511,6 +517,7 @@ async function doSearch() {
   const q = $('#q').value.trim();
   S.ani = []; S.aniState = '';
   if (q.length < 2) { S.items = []; renderSearch(true); return; }
+  if (cur().type === 'char') { doCharSearch(q); return; }
   if (!animeData) {
     try { await loadData(); } catch { $('#results').replaceChildren(h('div', { class: 'sw-hint' }, h('p', {}, 'Base indisponible. Réessaie avec internet.'))); return; }
   }
@@ -571,7 +578,7 @@ function refreshItem(it, added) {
 function toggleItem(it) {
   const k = keyInList(it);
   if (k) { removeKey(k); S.session.delete(it.key); }
-  else { addItem(it.key, it.title, it.img, it.gid ? groupRows(it.gid).map(rowKey) : undefined); S.session.add(it.key); showUndo(it); }
+  else { addItem(it.key, it.title, it.img, it.gid ? groupRows(it.gid).map(rowKey) : undefined, it.char ? { a: it.sub } : undefined); S.session.add(it.key); showUndo(it); }
   refreshItem(it, !!keyInList(it));
 }
 
@@ -612,6 +619,9 @@ $('#dlgSearch').addEventListener('click', (e) => { if (e.target === $('#dlgSearc
 
 function openSearch() {
   const dlg = $('#dlgSearch');
+  const chr = cur().type === 'char';
+  $('#srTitle').textContent = chr ? 'Ajouter des personnages' : 'Ajouter des animés';
+  $('#q').placeholder = chr ? 'Nom d’un personnage…' : 'Titre d’un animé…';
   if (!dlg.open) dlg.showModal();
   $('#q').focus();
   renderSearch();
@@ -685,11 +695,11 @@ function renderFiche() {
       }));
   } else {
     const r = rowOfKey(ficheKey);
-    $('#fiSub').textContent = r ? [TYPE_FR[fmtOf(r)], r[2] || null].filter(Boolean).join(' · ') : '';
+    $('#fiSub').textContent = r ? [TYPE_FR[fmtOf(r)], r[2] || null].filter(Boolean).join(' · ') : (it.a || '');
     box.replaceChildren(
       rows.length > 1
         ? h('div', { class: 'fi-solo' }, h('p', {}, `Cette carte est séparée de sa licence (${rows.length} saisons).`), h('button', { class: 'ghost', id: 'fiRegroup', type: 'button' }, 'Regrouper avec sa licence'))
-        : h('p', { class: 'fi-hint' }, 'Aucune autre saison liée à cet animé dans la base.'));
+        : h('p', { class: 'fi-hint' }, it.a !== undefined ? 'Personnage' + (it.a ? ' de « ' + it.a + ' »' : '') + '.' : 'Aucune autre saison liée à cet animé dans la base.'));
   }
 }
 
@@ -1041,6 +1051,173 @@ async function runImport() {
 $('#impGo').onclick = runImport;
 $('#impUser').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); $('#impGo').click(); } });
 $('#impClose').onclick = () => { $('#dlgImport').close(); $('#impGo').onclick = runImport; };
+
+// ---------- Tier lists de personnages ----------
+const USER_ICON = '<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg>';
+let listType = 'anime';
+
+// choix « Animés / Personnages » à la création d'une liste
+function renderListType() {
+  const opt = (t, title, desc) => h('button', { class: 'imp-opt' + (listType === t ? ' on' : ''), dataset: { lt: t }, type: 'button' },
+    h('i', { class: 'rd' }), h('span', {}, h('b', {}, title), h('small', {}, desc)));
+  $('#listType').replaceChildren(
+    opt('anime', 'Animés', 'Affiches des animés, saisons regroupées par licence.'),
+    opt('char', 'Personnages', 'Portraits de personnages : cherche n’importe lequel, ou ajoute les principaux de tes animés.'));
+}
+$('#listType').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-lt]');
+  if (b) { listType = b.dataset.lt; renderListType(); }
+});
+
+// recherche de personnages sur AniList (tous les personnages, y compris les méchants)
+const CHAR_SEARCH_Q = 'query($s:String){Page(perPage:30){characters(search:$s,sort:SEARCH_MATCH){id name{full} image{large} media(perPage:1,sort:POPULARITY_DESC){nodes{title{romaji english}}}}}}';
+const isPlaceholderImg = (u) => !u || /default\.(jpg|png)/.test(u);
+
+async function doCharSearch(q) {
+  $('#results').replaceChildren(h('div', { class: 'sw-hint' }, h('p', {}, 'Recherche sur AniList…')));
+  $('#srCnt').textContent = '';
+  let items = [], error = false;
+  try {
+    const res = await fetch('https://graphql.anilist.co', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({ query: CHAR_SEARCH_Q, variables: { s: q } }),
+    });
+    if (!res.ok) throw new Error(res.status);
+    const j = await res.json();
+    items = (j.data.Page.characters || []).filter((c) => !isPlaceholderImg(c.image.large)).map((c) => {
+      const t = c.media.nodes[0]?.title;
+      return { key: 'c' + c.id, char: true, title: c.name.full, img: c.image.large, fmt: 'CHAR', sub: t ? (t.english || t.romaji) : '' };
+    });
+  } catch { error = true; }
+  if ($('#q').value.trim() !== q) return; // une frappe plus récente a pris le relais
+  S.items = items; S.ani = []; S.aniState = '';
+  if (error) { $('#results').replaceChildren(h('div', { class: 'sw-hint' }, h('div', { class: 'big' }, '📡'), h('p', {}, 'AniList est indisponible pour le moment.'), h('small', {}, 'Vérifie ta connexion et réessaie.'))); return; }
+  renderSearch(true);
+}
+
+// ---------- Personnages principaux de mes animés ----------
+const CH = { src: null };
+// deux requêtes distinctes : AniList renvoie une erreur 500 si on mélange id_in et idMal_in
+const CHAR_MAIN_FIELDS = 'id title{romaji english} characters(role:MAIN,perPage:8,sort:RELEVANCE){nodes{id name{full} image{large}}}';
+const CHAR_MAIN_Q_ID = 'query($ids:[Int]){Page(perPage:25){media(id_in:$ids,type:ANIME){' + CHAR_MAIN_FIELDS + '}}}';
+const CHAR_MAIN_Q_MAL = 'query($mals:[Int]){Page(perPage:25){media(idMal_in:$mals,type:ANIME){' + CHAR_MAIN_FIELDS + '}}}';
+
+// animés d'une liste -> références AniList / MAL (pour une licence : sa jaquette et ses 3 premières saisons)
+function mediaRefs(list) {
+  const refs = [];
+  for (const k of Object.keys(list.items)) {
+    const it = list.items[k];
+    for (const mk of it.m ? it.m.slice(0, 4) : [k]) {
+      const r = rowOfKey(mk);
+      let ani = 0, mal = 0;
+      if (r) { ani = r[4]; mal = r[5]; } else if (mk[0] === 'a') ani = Number(mk.slice(1)); else if (mk[0] === 'm') mal = Number(mk.slice(1));
+      if (ani || mal) refs.push({ ani, mal, title: it.t });
+    }
+  }
+  return refs;
+}
+
+async function charBatch(ids, mals) {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    let res;
+    try {
+      res = await fetch('https://graphql.anilist.co', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify(ids.length ? { query: CHAR_MAIN_Q_ID, variables: { ids } } : { query: CHAR_MAIN_Q_MAL, variables: { mals } }),
+      });
+    } catch { throw new Error('network'); }
+    if (res.status === 429 && attempt === 0) { await new Promise((r) => setTimeout(r, (Number(res.headers.get('Retry-After')) || 30) * 1000)); continue; }
+    if (res.status === 429) throw new Error('rate');
+    const j = await res.json().catch(() => null);
+    if (!res.ok || !j?.data) throw new Error('network');
+    return j.data.Page.media || [];
+  }
+  return [];
+}
+
+function setChars(kind, text) {
+  const s = $('#chState');
+  s.hidden = !text;
+  s.className = 'imp-state ' + kind;
+  s.textContent = text || '';
+}
+
+function renderCharSources() {
+  const lists = db.lists.filter((l) => l.type !== 'char' && Object.keys(l.items).length);
+  if (!lists.some((l) => l.id === CH.src)) CH.src = (lists.find((l) => l.ani) || lists[0])?.id || null;
+  $('#chSrc').replaceChildren(
+    h('div', { class: 'imp-q' }, 'À partir de quelle liste d’animés ?'),
+    ...(lists.length
+      ? lists.map((l) => h('button', { class: 'imp-opt' + (CH.src === l.id ? ' on' : ''), dataset: { src: l.id }, type: 'button' },
+        h('i', { class: 'rd' }), h('span', {}, h('b', {}, l.name), h('small', {}, `${Object.keys(l.items).length} cartes`))))
+      : [h('p', { class: 'imp-note' }, 'Tu n’as pas encore de liste d’animés avec des cartes : importe ou ajoute d’abord des animés dans une liste « Animés ».')]));
+  $('#chGo').disabled = !lists.length;
+}
+$('#chSrc').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-src]');
+  if (b) { CH.src = b.dataset.src; renderCharSources(); }
+});
+
+function openChars() {
+  setChars('', '');
+  renderCharSources();
+  $('#chGo').textContent = 'Ajouter';
+  $('#chGo').onclick = runChars;
+  $('#dlgChars').showModal();
+  loadData().catch(() => {});
+}
+
+async function runChars() {
+  const src = db.lists.find((l) => l.id === CH.src), target = cur();
+  if (!src) return;
+  $('#chGo').disabled = true;
+  setChars('load', 'Préparation…');
+  try {
+    await loadData();
+    const refs = mediaRefs(src);
+    const ids = [...new Set(refs.filter((r) => r.ani).map((r) => r.ani))];
+    const mals = [...new Set(refs.filter((r) => !r.ani && r.mal).map((r) => r.mal))];
+    const titleOf = new Map();
+    refs.forEach((r) => { if (r.ani && !titleOf.has('a' + r.ani)) titleOf.set('a' + r.ani, r.title); if (r.mal && !titleOf.has('m' + r.mal)) titleOf.set('m' + r.mal, r.title); });
+    const batches = [];
+    for (let i = 0; i < ids.length; i += 25) batches.push([ids.slice(i, i + 25), []]);
+    for (let i = 0; i < mals.length; i += 25) batches.push([[], mals.slice(i, i + 25)]);
+
+    const found = new Map(); // clé personnage -> carte
+    for (let b = 0; b < batches.length; b++) {
+      setChars('load', `Lot ${b + 1} / ${batches.length} · ${found.size} personnages trouvés…`);
+      for (const m of await charBatch(...batches[b])) {
+        const title = titleOf.get('a' + m.id) || m.title.english || m.title.romaji;
+        for (const c of m.characters.nodes) {
+          const key = 'c' + c.id;
+          if (!found.has(key) && !isPlaceholderImg(c.image.large)) found.set(key, { t: c.name.full, i: c.image.large, a: title });
+        }
+      }
+      if (b < batches.length - 1) await new Promise((r) => setTimeout(r, 1200));
+    }
+    let added = 0, present = 0;
+    for (const [key, item] of found) {
+      if (target.items[key]) { present++; continue; }
+      target.items[key] = item; target.pool.push(key); added++;
+    }
+    save(); render();
+    const s = (n) => (n > 1 ? 's' : '');
+    setChars('ok', [
+      `${refs.length ? ids.length + mals.length : 0} animés analysés.`,
+      added ? `${added} personnage${s(added)} principa${added > 1 ? 'ux' : 'l'} ajouté${s(added)} dans « Non classé ».` : 'Rien de nouveau à ajouter.',
+      present ? `${present} déjà dans la liste, laissé${s(present)} tel${s(present)} quel${s(present)}.` : '',
+    ].filter(Boolean).join(' '));
+    $('#chGo').textContent = 'Terminé';
+    $('#chGo').disabled = false;
+    $('#chGo').onclick = () => { $('#dlgChars').close(); };
+  } catch (e) {
+    setChars('err', e.message === 'rate' ? 'AniList limite le nombre de requêtes. Réessaie dans une minute.' : 'Impossible de joindre AniList. Vérifie ta connexion et réessaie.');
+    $('#chGo').disabled = false;
+  }
+}
+$('#chClose').onclick = () => $('#dlgChars').close();
 
 // ---------- Démarrage ----------
 document.body.classList.add('boot'); // animation d'arrivée, retirée ensuite pour ne pas se rejouer
