@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Design de la tier list</title>
+<link rel="stylesheet" href="base.css">
+<style>
+body { overflow: auto; }
+.wrap { max-width: 1000px; margin: 0 auto; padding: 24px 16px 60px; }
+h1 { margin: 0 0 4px; } .sub { color: #9aa0b4; margin-bottom: 24px; }
+.opt { margin: 0 0 40px; }
+.opt h2 { margin: 0; font: 800 22px 'Baloo 2', sans-serif; } .opt > p { margin: 2px 0 12px; color: #9aa0b4; font-size: 13px; }
+.stage { padding: 16px; border-radius: 16px; background: #23262f; border: 2px solid #12141b; }
+.poster { width: 76px; height: 108px; object-fit: cover; border-radius: 10px; border: 2px solid #0e1016; box-shadow: 0 3px 0 rgba(0,0,0,.45); display: block; flex: none; }
+.items { display: flex; flex-wrap: wrap; gap: 6px; align-content: flex-start; flex: 1; }
+.name { font: 800 52px/1 'Baloo 2', sans-serif; }
+.leg { font: 600 11px/1.2 Inter, sans-serif; text-align: center; margin-top: 2px; }
+
+/* 1 — Bandes pleines : bloc de couleur vive, lettre sombre, contour épais */
+.d1 .tl { border-radius: 16px; overflow: hidden; border: 2px solid #0f1117; box-shadow: 0 5px 0 #0f1117; }
+.d1 .row { display: flex; background: #2a2e3b; border-top: 2px solid #0f1117; min-height: 124px; }
+.d1 .row:first-child { border-top: 0; }
+.d1 .lab { flex: 0 0 120px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: linear-gradient(180deg, var(--c1), var(--c2)); color: var(--ink); border-right: 2px solid #0f1117; box-shadow: inset 0 2px 0 rgba(255,255,255,.4); }
+.d1 .name { text-shadow: 0 2px 0 rgba(255,255,255,.25); } .d1 .leg { opacity: .8; }
+.d1 .items { padding: 8px; }
+
+/* 2 — Cartes colorées : chaque tier est une carte de couleur, affiches à bord blanc */
+.d2 .tl { display: flex; flex-direction: column; gap: 12px; }
+.d2 .row { position: relative; overflow: hidden; display: flex; align-items: center; gap: 14px; padding: 10px 14px; min-height: 128px; border-radius: 18px; background: linear-gradient(120deg, var(--c1), var(--c2)); border: 2px solid #0f1117; box-shadow: 0 5px 0 #0f1117, inset 0 2px 0 rgba(255,255,255,.3); }
+.d2 .lab { flex: 0 0 96px; color: var(--ink); text-align: center; z-index: 1; }
+.d2 .name { font-size: 58px; text-shadow: 0 3px 0 rgba(255,255,255,.3); }
+.d2 .items { z-index: 1; } .d2 .poster { border: 3px solid #fff; box-shadow: 0 4px 0 rgba(0,0,0,.35); }
+.d2 .row::after { content: attr(data-n); position: absolute; right: 8px; bottom: -34px; font: 800 150px/1 'Baloo 2', sans-serif; color: #fff; opacity: .16; }
+
+/* 3 — Pastille ronde : lignes séparées, pastille colorée, relief de la couleur du tier */
+.d3 .tl { display: flex; flex-direction: column; gap: 14px; }
+.d3 .row { display: flex; align-items: center; gap: 14px; padding: 10px 14px; min-height: 128px; border-radius: 18px; background: #2b2f3c; border: 2px solid #0f1117; box-shadow: 0 5px 0 var(--c2); }
+.d3 .lab { flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; width: 84px; }
+.d3 .name { width: 70px; height: 70px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 40px; color: var(--ink); background: linear-gradient(180deg, var(--c1), var(--c2)); border: 2px solid #0f1117; box-shadow: 0 3px 0 #0f1117, inset 0 2px 0 rgba(255,255,255,.4); }
+.d3 .leg { color: #b9bdd0; margin-top: 6px; }
+
+/* 4 — Bandeau titre : chaque tier a une bande de couleur en haut, affiches dessous */
+.d4 .tl { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.d4 .row { border-radius: 16px; overflow: hidden; background: #2b2f3c; border: 2px solid #0f1117; box-shadow: 0 5px 0 #0f1117; display: flex; flex-direction: column; }
+.d4 .row:first-child { grid-column: 1 / -1; }
+.d4 .lab { display: flex; align-items: baseline; gap: 10px; padding: 6px 14px; background: linear-gradient(90deg, var(--c1), var(--c2)); color: var(--ink); border-bottom: 2px solid #0f1117; }
+.d4 .name { font-size: 30px; } .d4 .leg { margin: 0; font-size: 13px; font-weight: 800; opacity: .8; }
+.d4 .items { padding: 10px; min-height: 124px; }
+
+/* 5 — Sobre : fond sombre, trait de couleur par tier, lettre colorée plate */
+.d5 .tl { display: flex; flex-direction: column; gap: 8px; }
+.d5 .row { display: flex; align-items: center; gap: 12px; padding: 8px 12px 8px 0; min-height: 124px; border-radius: 14px; background: #23262f; border: 2px solid #0f1117; overflow: hidden; }
+.d5 .row::before { content: ''; align-self: stretch; width: 10px; background: var(--c1); flex: none; }
+.d5 .lab { flex: 0 0 90px; text-align: center; } .d5 .name { color: var(--c1); } .d5 .leg { color: #8f98b8; }
+</style></head><body>
+<script src="mock.js"></script>
+<div class="wrap">
+  <h1>Design de la tier list</h1>
+  <div class="sub">Cinq directions plus colorées et plus lisibles que l'actuelle, avec les mêmes affiches. Elles s'appliqueraient à la page et à l'image partagée.</div>
+  <div id="opts"></div>
+</div>
+<script>
+const T = [
+  { n: 'S', d: 'Chef-d’œuvre', c1: '#ff7aa2', c2: '#ec4899', ink: '#fff', it: [0, 1, 2] },
+  { n: 'A', d: 'Excellent', c1: '#ffb83d', c2: '#f59e0b', ink: '#2a1a00', it: [3, 4, 5, 6] },
+  { n: 'B', d: 'Bien', c1: '#ffe066', c2: '#facc15', ink: '#2a2200', it: [7, 8, 9, 10, 11] },
+  { n: 'C', d: 'Moyen', c1: '#4ade9f', c2: '#10b981', ink: '#04281c', it: [12, 13] },
+  { n: 'D', d: 'Bof', c1: '#6ea0ff', c2: '#3b82f6', ink: '#fff', it: [14] },
+];
+const OPTS = [
+  ['d1', '1 · Bandes pleines', 'Un bloc de couleur vive à gauche avec la lettre en sombre, contour épais : la plus proche d’une tier list classique, très lisible en image.'],
+  ['d2', '2 · Cartes colorées', 'Chaque tier est une grande carte colorée avec sa lettre et un grand filigrane ; affiches à bord blanc. La plus festive.'],
+  ['d3', '3 · Pastille ronde', 'Lignes séparées sur fond sombre, une pastille colorée pour la lettre et un relief de la couleur du tier sous la ligne.'],
+  ['d4', '4 · Bandeau titre', 'Une bande de couleur avec « S · Chef-d’œuvre » au-dessus des affiches ; les petits tiers se rangent côte à côte.'],
+  ['d5', '5 · Sobre', 'Fond sombre, un trait de couleur par tier et la lettre en couleur, sans effet. La plus discrète.'],
+];
+const poster = (i) => `<img class="poster" src="${MOCK[i].i}" alt="">`;
+document.getElementById('opts').innerHTML = OPTS.map(([c, t, p]) => `
+  <section class="opt ${c}"><h2>${t}</h2><p>${p}</p>
+  <div class="stage"><div class="tl">${T.map((x) => `
+    <div class="row" data-n="${x.n}" style="--c1:${x.c1};--c2:${x.c2};--ink:${x.ink}">
+      <div class="lab"><div class="name">${x.n}</div><div class="leg">${x.d}</div></div>
+      <div class="items">${x.it.map(poster).join('')}</div></div>`).join('')}</div></div></section>`).join('');
+</script></body></html>
