@@ -33,8 +33,16 @@ button.ghost { background: var(--panel2); }
 .brand span { color: #ff6b57; } .brand b { color: var(--yellow); }
 .top select { flex: 1; min-width: 0; max-width: 360px; padding: 10px 12px; border-radius: 10px; border: 0; background: var(--panel); font-weight: 600; }
 .top .icon-btn { margin-left: auto; }
+/* Bouton d'ajout d'animés : en haut, bien visible. Sur téléphone il passe sur sa propre ligne. */
+.searchbtn { order: 5; flex: 1 0 100%; display: flex; align-items: center; justify-content: center; gap: 8px; background: var(--yellow); color: #2a1a00; font-weight: 700; padding: 11px 14px; border-radius: 12px; box-shadow: 0 3px 0 #c98a00; }
+.searchbtn span { font-size: 18px; line-height: 1; }
+.top { flex-wrap: wrap; }
+@media (min-width: 700px) {
+  .searchbtn { order: 0; flex: 1; max-width: 340px; margin-left: auto; }
+  .top .icon-btn { margin-left: 0; }
+}
 
-#board, .actions { max-width: var(--max); margin: 0 auto; }
+#board { max-width: var(--max); margin: 0 auto; }
 #board { padding: 18px 12px 0; }
 
 /* Tiers collés : lettre qui rayonne, légende dessous, la lueur de chaque tier se fond dans les voisins */
@@ -79,9 +87,9 @@ button.ghost { background: var(--panel2); }
 .cork .card .tt { left: 6px; right: 6px; bottom: 16px; border-radius: 0; }
 .cork .card.sel { transform: rotate(0) translateY(-4px) scale(1.05); }
 
-.actions { padding: 14px 12px 0; }
-.actions .ghost { width: 100%; background: transparent; border: 1px dashed var(--panel2); color: var(--muted); }
-.fab { position: fixed; right: 14px; bottom: calc(14px + env(safe-area-inset-bottom)); z-index: 6; background: var(--yellow); color: #2a1a00; font-weight: 700; padding: 14px 20px; border-radius: 14px; box-shadow: 0 4px 0 #c98a00, 0 8px 20px rgba(0,0,0,.5); }
+/* Ajouter un tier : juste sous le dernier tier, dans le même bloc */
+.add-tier { position: relative; z-index: 1; width: 100%; border-radius: 0; padding: 12px; background: rgba(255,255,255,.04); color: var(--muted); font-weight: 600; border-top: 1px solid rgba(255,255,255,.08); }
+.add-tier:hover { background: rgba(255,255,255,.09); color: var(--text); }
 
 /* Barre de placement (toucher l'animé, puis le tier) */
 .place-bar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 8; padding: 12px max(12px, calc((100% - var(--max)) / 2)) calc(12px + env(safe-area-inset-bottom)); background: #1c1f27; border-top: 1px solid var(--edge); border-radius: 16px 16px 0 0; box-shadow: 0 -8px 24px rgba(0,0,0,.55); }
@@ -100,8 +108,26 @@ dialog::backdrop { background: rgba(0,0,0,.65); }
 .modal h2 { margin: 0 0 4px; font: 700 22px 'Baloo 2', sans-serif; }
 .modal label { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
 .modal input { background: var(--panel2); border: 0; border-radius: 8px; padding: 8px 10px; min-width: 0; }
-.modal input[type=color] { padding: 0; width: 56px; height: 36px; }
 .modal a { color: #ffd24d; }
+.modal #dlgTier, #dlgTier.modal { width: min(94vw, 420px); }
+
+/* Fenêtre du tier : aperçu en direct, champs, palette de couleurs, boutons */
+.tier-preview { min-height: 88px; border-radius: 12px; overflow: hidden; background-color: var(--dark); border: 2px solid var(--edge); }
+.tier-preview .tier-label { flex-basis: 130px; pointer-events: none; }
+.tier-preview .tier-label b { font-size: 46px; }
+.tier-preview .zone { min-height: 0; }
+.modal .fld { display: flex; flex-direction: column; align-items: stretch; gap: 4px; font-size: 13px; color: var(--muted); }
+.modal .fld input { font-size: 16px; color: var(--text); padding: 11px 12px; }
+.swatches { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; padding: 4px 2px; }
+.sw { aspect-ratio: 1; padding: 0; border-radius: 50%; border: 3px solid transparent; box-shadow: 0 3px 0 rgba(0,0,0,.4); }
+.sw.on { border-color: #fff; transform: scale(1.12); }
+.foot { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
+.foot .only-edit { display: flex; gap: 6px; order: 0; margin-right: auto; }
+.foot .primary { order: 2; min-width: 96px; }
+.foot .only-new { order: 1; display: none; margin-right: auto; }
+.is-new .only-edit { display: none; }
+.is-new .only-new { display: block; }
+button.sm { padding: 8px 12px; }
 .row { display: flex; gap: 8px; } .row > * { flex: 1; }
 
 /* Recherche plein écran */

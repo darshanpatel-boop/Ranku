@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#16162a">
+<meta name="theme-color" content="#1c1f27">
 <title>Ranku</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon-192.png">
@@ -16,16 +16,11 @@
 <header class="top">
   <h1 class="brand"><span>Ran</span><b>ku</b></h1>
   <select id="listSelect" aria-label="Tier list"></select>
+  <button id="btnSearch" class="searchbtn" type="button"><span>＋</span> Ajouter des animés</button>
   <button id="btnMenu" class="icon-btn" aria-label="Menu">⋯</button>
 </header>
 
 <main id="board"></main>
-
-<div class="actions">
-  <button id="btnAddTier" class="ghost">+ Ajouter un tier</button>
-</div>
-
-<button id="btnSearch" class="fab">+ Ajouter des animés</button>
 
 <div id="placeBar" class="place-bar" hidden></div>
 
@@ -39,17 +34,22 @@
 
 <dialog id="dlgTier" class="modal">
   <form method="dialog" id="formTier">
-    <h2>Modifier le tier</h2>
-    <label>Nom <input id="tierName" maxlength="20"></label>
-    <label>Légende <input id="tierDesc" maxlength="24" placeholder="facultatif"></label>
-    <label>Couleur <input id="tierColor" type="color"></label>
-    <div class="row">
-      <button type="button" id="tierUp" class="ghost">↑ Monter</button>
-      <button type="button" id="tierDown" class="ghost">↓ Descendre</button>
+    <h2 id="tierTitle">Modifier le tier</h2>
+    <div class="tier tier-preview" id="tierPrev">
+      <div class="tier-label"><b></b><small></small></div>
+      <div class="zone"></div>
     </div>
-    <div class="row">
-      <button type="button" id="tierDel" class="danger">Supprimer</button>
-      <button value="ok" class="primary">OK</button>
+    <label class="fld">Nom <input id="tierName" maxlength="20" autocomplete="off" placeholder="S, A, Top…"></label>
+    <label class="fld">Légende <input id="tierDesc" maxlength="24" autocomplete="off" placeholder="facultatif"></label>
+    <div class="swatches" id="swatches" role="group" aria-label="Couleur"></div>
+    <div class="foot">
+      <div class="only-edit">
+        <button type="button" id="tierDel" class="danger sm">Supprimer</button>
+        <button type="button" id="tierUp" class="ghost sm" aria-label="Monter">↑</button>
+        <button type="button" id="tierDown" class="ghost sm" aria-label="Descendre">↓</button>
+      </div>
+      <button value="ok" id="tierOk" class="primary">OK</button>
+      <button value="cancel" id="tierCancel" class="ghost only-new">Annuler</button>
     </div>
   </form>
 </dialog>

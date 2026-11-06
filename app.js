@@ -101,7 +101,8 @@ function render() {
     h('div', { class: 'tier', style: `--c1:${t.color};--c2:${shade(t.color, -0.2)}` },
       h('button', { class: 'tier-label' + (t.name.length > 3 ? ' long' : ''), dataset: { tier: t.id }, type: 'button' },
         h('b', {}, t.name), t.desc ? h('small', {}, t.desc) : null),
-      h('div', { class: 'zone', dataset: { zone: t.id } }, t.items.filter((k) => list.items[k]).map((k) => card(list, k)))))));
+      h('div', { class: 'zone', dataset: { zone: t.id } }, t.items.filter((k) => list.items[k]).map((k) => card(list, k))))),
+    h('button', { class: 'add-tier', type: 'button' }, '＋ Ajouter un tier')));
   board.append(
     h('div', { class: 'cork' },
       h('div', { class: 'note' }, 'Non classé'),
@@ -137,8 +138,7 @@ function syncFromDom() {
 function updatePlaceBar() {
   const bar = $('#placeBar');
   const list = cur();
-  if (!sel || !list.items[sel]) { sel = null; bar.hidden = true; $('#btnSearch').hidden = false; return; }
-  $('#btnSearch').hidden = true;
+  if (!sel || !list.items[sel]) { sel = null; bar.hidden = true; return; }
   bar.hidden = false;
   bar.replaceChildren(
     h('div', { class: 'pt' }, 'Placer « ' + list.items[sel].t + ' » dans :'),
@@ -175,30 +175,71 @@ function removeSel() {
 $('#board').addEventListener('click', (e) => {
   const c = e.target.closest('.card');
   if (c) { sel = sel === c.dataset.k ? null : c.dataset.k; render(); return; }
+  if (e.target.closest('.add-tier')) { openTier(null); return; }
   const lab = e.target.closest('.tier-label');
   if (lab) openTier(lab.dataset.tier);
 });
 
-// ---------- Tiers : nom, couleur, ordre, suppression ----------
-let editTier = null;
-function openTier(id) {
-  editTier = id;
-  const t = cur().tiers.find((x) => x.id === id);
-  $('#tierName').value = t.name;
-  $('#tierDesc').value = t.desc || '';
-  $('#tierColor').value = t.color;
-  $('#dlgTier').showModal();
+// ---------- Tiers : fenêtre unique pour créer ou modifier (nom, légende, couleur parmi une palette) ----------
+const SWATCHES = ['#ff7aa2', '#ff5d5d', '#ffb83d', '#ffe066', '#4ade9f', '#2dd4bf', '#6ea0ff', '#818cf8', '#b794f6', '#e879f9', '#9ca3af', '#f3f4f8'];
+let editTier = null; // id du tier modifié, null = création
+let draft = { name: '', desc: '', color: SWATCHES[0] };
+
+function renderTierDialog() {
+  const prev = $('#tierPrev');
+  prev.style.cssText = `--c1:${draft.color};--c2:${shade(draft.color, -0.2)}`;
+  $('b', prev).textContent = draft.name || '?';
+  $('small', prev).textContent = draft.desc;
+  const colors = SWATCHES.includes(draft.color) ? SWATCHES : [draft.color, ...SWATCHES];
+  $('#swatches').replaceChildren(...colors.map((c) => h('button', {
+    class: 'sw' + (c === draft.color ? ' on' : ''), style: `background:${c}`, type: 'button', 'aria-label': c,
+    onclick: () => { draft.color = c; renderTierDialog(); },
+  })));
 }
-function applyTierEdit() {
+
+function openTier(id) {
+  const dlg = $('#dlgTier');
+  editTier = id;
+  if (id) {
+    const t = cur().tiers.find((x) => x.id === id);
+    draft = { name: t.name, desc: t.desc || '', color: t.color };
+  } else {
+    const used = new Set(cur().tiers.map((t) => t.color));
+    draft = { name: '', desc: '', color: SWATCHES.find((c) => !used.has(c)) || SWATCHES[0] };
+  }
+  $('#tierTitle').textContent = id ? 'Modifier le tier' : 'Nouveau tier';
+  $('#tierOk').textContent = id ? 'OK' : 'Ajouter';
+  dlg.classList.toggle('is-new', !id);
+  $('#tierName').value = draft.name;
+  $('#tierDesc').value = draft.desc;
+  renderTierDialog();
+  dlg.returnValue = '';
+  dlg.showModal();
+  if (!id) $('#tierName').focus();
+}
+
+$('#tierName').addEventListener('input', (e) => { draft.name = e.target.value; renderTierDialog(); });
+$('#tierDesc').addEventListener('input', (e) => { draft.desc = e.target.value; renderTierDialog(); });
+// un nouveau tier doit avoir un nom
+$('#tierOk').addEventListener('click', (e) => {
+  if (!editTier && !draft.name.trim()) { e.preventDefault(); $('#tierName').focus(); }
+});
+
+function applyDraft() {
   const t = cur().tiers.find((x) => x.id === editTier);
   if (!t) return;
-  t.name = $('#tierName').value.trim() || t.name;
-  t.desc = $('#tierDesc').value.trim();
-  t.color = $('#tierColor').value;
+  t.name = draft.name.trim() || t.name;
+  t.desc = draft.desc.trim();
+  t.color = draft.color;
 }
-$('#dlgTier').addEventListener('close', () => { applyTierEdit(); save(); render(); });
+$('#dlgTier').addEventListener('close', () => {
+  const ok = $('#dlgTier').returnValue === 'ok';
+  if (editTier) applyDraft();
+  else if (ok) cur().tiers.push({ id: uid(), name: draft.name.trim(), color: draft.color, desc: draft.desc.trim(), items: [] });
+  save(); render();
+});
 function moveTier(d) {
-  applyTierEdit();
+  applyDraft();
   const ts = cur().tiers;
   const i = ts.findIndex((x) => x.id === editTier);
   const j = i + d;
@@ -216,10 +257,6 @@ $('#tierDel').onclick = () => {
   list.tiers = list.tiers.filter((x) => x.id !== editTier);
   editTier = null;
   $('#dlgTier').close();
-};
-$('#btnAddTier').onclick = () => {
-  cur().tiers.push({ id: uid(), name: 'Nouveau', color: '#b794f6', desc: '', items: [] });
-  save(); render();
 };
 
 // ---------- Plusieurs tier lists ----------
