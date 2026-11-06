@@ -149,6 +149,20 @@
   </form>
 </dialog>
 
+<div id="selBar" class="sel-bar" hidden></div>
+
+<dialog id="dlgSort" class="sortwin">
+  <div class="qs-head"><span id="qsProg"></span><button class="sw-x" id="qsClose" type="button" aria-label="Fermer">✕</button></div>
+  <div class="qs-bar"><i id="qsFill"></i></div>
+  <div class="qs-body" id="qsBody"></div>
+  <div class="qs-tiers" id="qsTiers"></div>
+  <div class="qs-act">
+    <button class="ghost" id="qsUndo" type="button" disabled>Annuler</button>
+    <button class="ghost" id="qsSkip" type="button">Passer</button>
+    <button class="danger" id="qsDel" type="button">Retirer</button>
+  </div>
+</dialog>
+
 <div id="toast" class="toast" hidden></div>
 
 <script src="vendor/Sortable.min.js"></script>

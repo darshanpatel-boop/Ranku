@@ -81,7 +81,7 @@ const imgUrl = (i) => (i.startsWith('http') || i.startsWith('data:') ? i : imgBa
 
 function card(list, key) {
   const it = list.items[key];
-  return h('div', { class: 'card' + (key === freshKey ? ' pop' : ''), dataset: { k: key }, title: it.t },
+  return h('div', { class: 'card' + (key === freshKey ? ' pop' : '') + (UI.sel.has(key) ? ' sel' : ''), dataset: { k: key }, title: it.t },
     h('img', { src: imgUrl(it.i), alt: it.t, loading: 'lazy', draggable: 'false' }),
     it.m && it.m.length > 1 ? h('span', { class: 'cnt' }, '×' + it.m.length) : null,
     h('span', { class: 'tt' }, it.t));
@@ -89,6 +89,8 @@ function card(list, key) {
 
 function render() {
   const list = cur();
+  if (UI.listId !== list.id) { UI.listId = list.id; UI.filter = ''; UI.sel.clear(); UI.selMode = false; } // filtre et sélection propres à chaque liste
+  for (const k of [...UI.sel]) if (!list.items[k]) UI.sel.delete(k);
   renderTabs();
 
   sortables.forEach((s) => s.destroy());
@@ -98,7 +100,9 @@ function render() {
 
   // trait coloré continu sur le bord gauche : un seul dégradé de bas en haut des tiers
   const bar = `linear-gradient(180deg, ${list.tiers.map((t, i) => `${t.color} ${Math.round(((i + 0.5) / list.tiers.length) * 100)}%`).join(', ')})`;
-  board.append(h('div', { class: 'board-tools' }, h('button', { class: 'share-btn', type: 'button' }, svgEl(SHARE_ICON), 'Partager')));
+  board.append(h('div', { class: 'board-tools' },
+    h('label', { class: 'size-ctl', title: 'Taille des affiches' }, svgEl(SIZE_SMALL), h('input', { type: 'range', id: 'sizeRange', min: '56', max: '140', step: '2', value: String(Math.round(currentCardW())) }), svgEl(SIZE_BIG)),
+    h('button', { class: 'share-btn', type: 'button' }, svgEl(SHARE_ICON), 'Partager')));
   board.append(h('div', { class: 'tiers', style: `--bar:${bar}` }, list.tiers.map((t, i) =>
     h('div', { class: 'tier' + (t.id === freshTier ? ' pop' : ''), dataset: { id: t.id }, style: `--i:${i};--c1:${t.color};--c2:${shade(t.color, -0.2)}` },
       h('div', { class: 'mv' },
@@ -114,7 +118,16 @@ function render() {
       ? h('button', { class: 'import-btn chars-btn', type: 'button' }, svgEl(IMPORT_ICON), 'Ajouter les personnages principaux de mes animés')
       : h('button', { class: 'import-btn', type: 'button' }, svgEl(IMPORT_ICON), 'Importer ma liste')),
     h('div', { class: 'cork' },
-      h('div', { class: 'note' }, 'Non classé', h('b', { class: 'cnt-n' }, String(list.pool.filter((k) => list.items[k]).length))),
+      h('div', { class: 'note' }, 'Non classé', h('b', { class: 'cnt-n' }, String(poolTotal(list)))),
+      h('div', { class: 'cork-tools' },
+        h('input', { class: 'pf', id: 'poolFilter', type: 'search', placeholder: 'Filtrer…', value: UI.filter, autocomplete: 'off' }),
+        h('select', { class: 'ps', id: 'poolSort', 'aria-label': 'Trier Non classé' },
+          h('option', { value: '' }, 'Trier…'),
+          ...(list.type === 'char'
+            ? [['title', 'Nom A → Z'], ['titleDesc', 'Nom Z → A'], ['anime', 'Par animé']]
+            : [['title', 'Titre A → Z'], ['titleDesc', 'Titre Z → A'], ['yearAsc', 'Année : anciens d’abord'], ['yearDesc', 'Année : récents d’abord']]).map(([v, l]) => h('option', { value: v }, l))),
+        h('button', { class: 'ct-btn', id: 'quickBtn', type: 'button', ...(poolTotal(list) ? {} : { disabled: '' }) }, 'Tri rapide'),
+        h('button', { class: 'ct-btn' + (UI.selMode ? ' on' : ''), id: 'selBtn', type: 'button' }, UI.selMode ? 'Sélection en cours' : 'Sélectionner')),
       h('div', { class: 'zone', dataset: { zone: 'pool' } }, list.pool.filter((k) => list.items[k]).map((k) => card(list, k)))));
 
   freshKey = null; freshTier = null;
@@ -132,10 +145,13 @@ function render() {
       swapThreshold: 0.6,
       ghostClass: 'sortable-ghost',
       chosenClass: 'sortable-chosen',
+      disabled: UI.selMode,      // pendant la sélection multiple, un toucher sélectionne au lieu de saisir
       onEnd: () => { lastDrag = Date.now(); syncFromDom(); },
     }));
   });
   updateBar();
+  applyPoolFilter();
+  renderSelBar();
 }
 
 // Relit l'ordre depuis le DOM après un glisser-déposer (le DOM est déjà à jour : pas de reconstruction).
@@ -148,8 +164,7 @@ function syncFromDom() {
   }
   save();
   updateBar();
-  const cn = $('.cork .note .cnt-n');
-  if (cn) cn.textContent = String(list.pool.filter((k) => list.items[k]).length);
+  updatePoolCount();
 }
 
 function detach(list, key) {
@@ -161,7 +176,10 @@ $('#board').addEventListener('click', (e) => {
   if (e.target.closest('.share-btn')) { openShare(); return; }
   if (e.target.closest('.chars-btn')) { openChars(); return; }
   if (e.target.closest('.import-btn')) { openImport(); return; }
+  if (e.target.closest('#selBtn')) { toggleSelMode(); return; }
+  if (e.target.closest('#quickBtn')) { openQuick(); return; }
   const card = e.target.closest('.card');
+  if (card && UI.selMode) { toggleSel(card); return; }
   if (card && Date.now() - lastDrag > 300) { openFiche(card.dataset.k); return; }
   const mv = e.target.closest('[data-mv]');
   if (mv) { swapTier(mv.dataset.tier, Number(mv.dataset.mv)); return; }
@@ -1389,6 +1407,209 @@ $('#fiReset').onclick = () => {
   save(); render(); renderFiche();
   toast('Image d’origine remise');
 };
+
+// ---------- Confort de tri : taille des affiches, filtre et tri de « Non classé », sélection multiple, tri rapide ----------
+const UI = { listId: null, selMode: false, sel: new Set(), filter: '' }; // état de l'écran, non enregistré
+const SIZE_SMALL = '<svg viewBox="0 0 24 24"><rect x="8" y="8" width="8" height="8" rx="2"/></svg>';
+const SIZE_BIG = '<svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/></svg>';
+
+// --- taille des affiches (réglage global, gardé dans le navigateur)
+function applyCardSize(w) {
+  const root = document.documentElement.style;
+  root.setProperty('--card-w', w + 'px');
+  root.setProperty('--card-h', Math.round(w * 1.42) + 'px');
+}
+const currentCardW = () => db.cardW || parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--card-w')) || 86;
+if (db.cardW) applyCardSize(db.cardW);
+
+// --- compteur et filtre de « Non classé »
+const poolTotal = (list) => list.pool.filter((k) => list.items[k]).length;
+function updatePoolCount() {
+  const cn = $('.cork .note .cnt-n');
+  if (!cn) return;
+  const total = poolTotal(cur()), shown = [...document.querySelectorAll('.cork .card')].filter((c) => !c.classList.contains('hide-f')).length;
+  cn.textContent = UI.filter.trim() ? `${shown} / ${total}` : String(total);
+}
+const cardText = (it) => norm(it.t + ' ' + (it.a || ''));
+function applyPoolFilter() {
+  const q = norm(UI.filter), list = cur();
+  document.querySelectorAll('.cork .card').forEach((c) => {
+    const it = list.items[c.dataset.k];
+    c.classList.toggle('hide-f', !!(q && it && !cardText(it).includes(q)));
+  });
+  updatePoolCount();
+}
+
+// --- tri de « Non classé » (réorganise vraiment la pile)
+function sortPool(mode) {
+  const list = cur();
+  const year = (k) => { const it = list.items[k], r = rowOfKey(it.m ? it.m[0] : k); return r?.[2] || 0; };
+  const title = (k) => list.items[k].t;
+  const origin = (k) => list.items[k].a || '';
+  const col = (a, b) => a.localeCompare(b, 'fr', { sensitivity: 'base' });
+  const cmp = {
+    title: (a, b) => col(title(a), title(b)),
+    titleDesc: (a, b) => col(title(b), title(a)),
+    anime: (a, b) => col(origin(a), origin(b)) || col(title(a), title(b)),
+    yearAsc: (a, b) => (year(a) || 9999) - (year(b) || 9999) || col(title(a), title(b)),
+    yearDesc: (a, b) => (year(b) || 0) - (year(a) || 0) || col(title(a), title(b)),
+  }[mode];
+  if (!cmp) return;
+  list.pool = list.pool.filter((k) => list.items[k]).sort(cmp);
+  save(); render();
+}
+
+// --- sélection multiple
+function toggleSelMode() {
+  UI.selMode = !UI.selMode;
+  UI.sel.clear();
+  render();
+}
+function toggleSel(cardEl) {
+  const k = cardEl.dataset.k;
+  if (UI.sel.has(k)) UI.sel.delete(k); else UI.sel.add(k);
+  cardEl.classList.toggle('sel', UI.sel.has(k));
+  renderSelBar();
+}
+let rmArmed = false, rmTimer;
+function renderSelBar() {
+  const bar = $('#selBar'), list = cur(), n = UI.sel.size;
+  bar.hidden = !UI.selMode;
+  if (!UI.selMode) return;
+  const dis = n ? {} : { disabled: '' };
+  bar.replaceChildren(
+    h('div', { class: 'sb-top' },
+      h('b', {}, n ? `${n} sélectionnée${n > 1 ? 's' : ''}` : 'Touche les cartes à déplacer'),
+      h('span', { class: 'sb-links' },
+        h('button', { class: 'ghost sm', id: 'sbAll', type: 'button' }, 'Tout le Non classé'),
+        h('button', { class: 'ghost sm', id: 'sbNone', type: 'button', ...dis }, 'Aucune'),
+        h('button', { class: 'primary sm', id: 'sbDone', type: 'button' }, 'Terminer'))),
+    h('div', { class: 'sb-btns' },
+      ...list.tiers.map((t) => h('button', { class: 'sb-t', dataset: { to: t.id }, style: `background:${t.color};color:${textOn(t.color)}`, type: 'button', ...dis }, t.name)),
+      h('button', { class: 'sb-p', dataset: { to: 'pool' }, type: 'button', ...dis }, 'Non classé'),
+      h('button', { class: 'sb-rm', id: 'sbRm', type: 'button', ...dis }, rmArmed ? 'Confirmer ?' : 'Retirer')));
+}
+function moveSelected(to) {
+  const list = cur(), keys = [...UI.sel];
+  for (const k of keys) {
+    if (!list.items[k]) continue;
+    detach(list, k);
+    (to === 'pool' ? list.pool : list.tiers.find((t) => t.id === to).items).push(k);
+  }
+  UI.sel.clear();
+  save(); render();
+}
+$('#selBar').addEventListener('click', (e) => {
+  const to = e.target.closest('[data-to]');
+  if (to && !to.disabled) { moveSelected(to.dataset.to); return; }
+  if (e.target.closest('#sbAll')) { document.querySelectorAll('.cork .card:not(.hide-f)').forEach((c) => { UI.sel.add(c.dataset.k); c.classList.add('sel'); }); renderSelBar(); return; }
+  if (e.target.closest('#sbNone')) { UI.sel.clear(); document.querySelectorAll('.card.sel').forEach((c) => c.classList.remove('sel')); renderSelBar(); return; }
+  if (e.target.closest('#sbDone')) { toggleSelMode(); return; }
+  if (e.target.closest('#sbRm')) {
+    if (!rmArmed) { rmArmed = true; renderSelBar(); clearTimeout(rmTimer); rmTimer = setTimeout(() => { rmArmed = false; if (UI.selMode) renderSelBar(); }, 3000); return; }
+    rmArmed = false;
+    const list = cur();
+    [...UI.sel].forEach((k) => { detach(list, k); delete list.items[k]; });
+    UI.sel.clear(); save(); render();
+  }
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && UI.selMode && !document.querySelector('dialog[open]')) toggleSelMode();
+});
+
+// --- réglages dans le tableau (filtre, tri, taille)
+$('#board').addEventListener('input', (e) => {
+  if (e.target.id === 'poolFilter') { UI.filter = e.target.value; applyPoolFilter(); }
+  if (e.target.id === 'sizeRange') applyCardSize(Number(e.target.value));
+});
+$('#board').addEventListener('change', (e) => {
+  if (e.target.id === 'poolSort') sortPool(e.target.value);
+  if (e.target.id === 'sizeRange') { db.cardW = Number(e.target.value); save(); }
+});
+
+// --- tri rapide : une carte à la fois, un toucher par tier
+const QS = { queue: [], history: [], total: 0, counts: {} };
+
+function openQuick() {
+  const list = cur(), q = norm(UI.filter);
+  QS.queue = list.pool.filter((k) => list.items[k] && (!q || cardText(list.items[k]).includes(q)));
+  if (!QS.queue.length) { toast('Rien à ranger dans « Non classé »'); return; }
+  QS.history = []; QS.counts = {}; QS.total = QS.queue.length;
+  $('#dlgSort').showModal();
+  renderQuick();
+}
+
+function renderQuick() {
+  const list = cur(), key = QS.queue[0], it = key && list.items[key];
+  const done = QS.total - QS.queue.length;
+  $('#qsProg').textContent = key ? `${done + 1} / ${QS.total}` : `${QS.total} / ${QS.total}`;
+  $('#qsFill').style.width = (QS.total ? (done / QS.total) * 100 : 100) + '%';
+  $('#qsUndo').disabled = !QS.history.length;
+  ['qsSkip', 'qsDel'].forEach((id) => { $('#' + id).disabled = !key; });
+
+  if (!key) { // tout est rangé
+    $('#qsBody').replaceChildren(h('div', { class: 'qs-done' },
+      h('div', { class: 'big' }, '🎉'), h('p', {}, 'Tout est rangé !'),
+      h('small', {}, list.tiers.map((t) => (QS.counts[t.id] ? `${t.name} : ${QS.counts[t.id]}` : '')).filter(Boolean).join(' · ') || 'Rien n’a été déplacé.')));
+    $('#qsTiers').replaceChildren(h('button', { class: 'primary', id: 'qsFinish', type: 'button' }, 'Fermer'));
+    return;
+  }
+  const sub = it.m && it.m.length > 1 ? `${it.m.length} saisons` : (it.a || '');
+  $('#qsBody').replaceChildren(
+    h('img', { class: 'qs-card', src: imgUrl(it.i), alt: it.t }),
+    h('div', { class: 'qs-title' }, it.t),
+    sub ? h('div', { class: 'qs-sub' }, sub) : null);
+  $('#qsTiers').replaceChildren(...list.tiers.map((t, i) => h('button', {
+    class: 'qs-t', dataset: { qt: t.id }, type: 'button',
+    style: `--c1:${t.color};--c2:${shade(t.color, -0.2)};--ink:${textOn(t.color)}`,
+  }, h('b', {}, t.name), t.desc ? h('small', {}, t.desc) : null, i < 9 ? h('kbd', {}, String(i + 1)) : null)));
+}
+
+function quickPlace(tierId) {
+  const list = cur(), key = QS.queue.shift();
+  if (!key || !list.items[key]) return renderQuick();
+  const pos = list.pool.indexOf(key);
+  detach(list, key);
+  list.tiers.find((t) => t.id === tierId).items.push(key);
+  QS.history.push({ key, tierId, pos });
+  QS.counts[tierId] = (QS.counts[tierId] || 0) + 1;
+  save(); renderQuick();
+}
+function quickSkip() { if (QS.queue.length > 1) QS.queue.push(QS.queue.shift()); renderQuick(); }
+function quickDelete() {
+  const list = cur(), key = QS.queue.shift();
+  if (!key) return;
+  const pos = list.pool.indexOf(key), item = list.items[key];
+  detach(list, key); delete list.items[key];
+  QS.history.push({ key, tierId: null, pos, item });
+  save(); renderQuick();
+}
+function quickUndo() {
+  const list = cur(), last = QS.history.pop();
+  if (!last) return;
+  if (last.item) list.items[last.key] = last.item; // carte retirée : on la remet
+  else { const t = list.tiers.find((x) => x.id === last.tierId); t.items = t.items.filter((k) => k !== last.key); QS.counts[last.tierId]--; }
+  list.pool.splice(Math.min(last.pos < 0 ? list.pool.length : last.pos, list.pool.length), 0, last.key);
+  QS.queue.unshift(last.key);
+  save(); renderQuick();
+}
+$('#qsTiers').addEventListener('click', (e) => {
+  const t = e.target.closest('[data-qt]');
+  if (t) { quickPlace(t.dataset.qt); return; }
+  if (e.target.closest('#qsFinish')) $('#dlgSort').close();
+});
+$('#qsSkip').onclick = quickSkip;
+$('#qsDel').onclick = quickDelete;
+$('#qsUndo').onclick = quickUndo;
+$('#qsClose').onclick = () => $('#dlgSort').close();
+$('#dlgSort').addEventListener('close', () => { QS.queue = []; render(); });
+$('#dlgSort').addEventListener('keydown', (e) => {
+  if (!QS.queue.length) return;
+  const n = Number(e.key);
+  if (n >= 1 && n <= 9 && cur().tiers[n - 1]) { e.preventDefault(); quickPlace(cur().tiers[n - 1].id); }
+  else if (e.key === ' ' || e.key === 'ArrowRight') { e.preventDefault(); quickSkip(); }
+  else if (e.key === 'Backspace' || e.key === 'z') { e.preventDefault(); quickUndo(); }
+});
 
 // ---------- Démarrage ----------
 document.body.classList.add('boot'); // animation d'arrivée, retirée ensuite pour ne pas se rejouer
