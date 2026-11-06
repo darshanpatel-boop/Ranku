@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Tops : propositions</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800&family=Inter:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root { --bg: #23262f; --panel: #272b37; --line: #12141b; --text: #eef0f7; --muted: #8f98b8; --accent: #4f8cff; --gold: #ffd24d; --silver: #cfd6e4; --bronze: #e0a070; }
+* { box-sizing: border-box; margin: 0; }
+body { background: var(--bg); color: var(--text); font: 500 15px Inter, sans-serif; padding: 18px 16px 60px; }
+h1 { font: 800 28px 'Baloo 2'; } .sub { color: var(--muted); margin: 4px 0 26px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 30px 24px; max-width: 1200px; }
+.v h2 { font: 800 18px 'Baloo 2'; margin-bottom: 2px; } .v p { color: var(--muted); font-size: 13px; margin-bottom: 12px; }
+.list { display: flex; flex-direction: column; }
+.row img { display: block; object-fit: cover; }
+.t { font-weight: 800; line-height: 1.2; }
+.empty { color: #6f7897; }
+
+/* A : sobre, numéro en simple chiffre */
+.A .row { display: flex; align-items: center; gap: 14px; padding: 10px 6px; border-bottom: 1px solid #343949; }
+.A .n { width: 38px; text-align: center; font: 800 30px 'Baloo 2'; color: #7f88a6; }
+.A .r1 .n { color: var(--gold); font-size: 38px; } .A .r2 .n { color: var(--silver); } .A .r3 .n { color: var(--bronze); }
+.A img { width: 54px; height: 80px; border-radius: 8px; }
+.A .t { font-size: 17px; }
+
+/* B : pastille ronde posée sur l'affiche */
+.B .list { gap: 10px; }
+.B .row { display: flex; align-items: center; gap: 16px; padding: 10px 14px 10px 10px; background: var(--panel); border: 2px solid var(--line); border-radius: 16px; box-shadow: 0 4px 0 var(--line); }
+.B .p { position: relative; flex: none; }
+.B img { width: 64px; height: 96px; border-radius: 10px; border: 2px solid #0e1016; }
+.B .n { position: absolute; left: -10px; top: -10px; min-width: 32px; height: 32px; padding: 0 6px; border-radius: 99px; display: flex; align-items: center; justify-content: center; background: var(--accent); color: #fff; border: 3px solid var(--line); font: 800 17px 'Baloo 2'; box-shadow: 0 2px 0 var(--line); }
+.B .r1 .n { background: var(--gold); color: #2a1a00; } .B .r2 .n { background: var(--silver); color: #1a1d27; } .B .r3 .n { background: var(--bronze); color: #2a1405; }
+.B .t { font-size: 17px; }
+
+/* C : bannière floue de l'affiche */
+.C .list { gap: 10px; }
+.C .row { position: relative; display: flex; align-items: center; gap: 14px; height: 92px; padding: 0 16px 0 14px; border-radius: 16px; overflow: hidden; border: 2px solid var(--line); background: #1c1f27; }
+.C .bg { position: absolute; inset: -20px; background-size: cover; background-position: center 25%; filter: blur(14px) saturate(1.2); opacity: .55; }
+.C .row::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, rgba(20,22,30,.92) 0%, rgba(20,22,30,.55) 55%, rgba(20,22,30,.2) 100%); }
+.C .row > *:not(.bg) { position: relative; z-index: 2; }
+.C .n { width: 44px; text-align: center; font: 800 38px 'Baloo 2'; color: #fff; text-shadow: 0 2px 8px rgba(0,0,0,.6); }
+.C .r1 .n { color: var(--gold); } .C .r2 .n { color: var(--silver); } .C .r3 .n { color: var(--bronze); }
+.C img { width: 52px; height: 76px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,.5); }
+.C .t { font-size: 17px; text-shadow: 0 1px 6px rgba(0,0,0,.7); }
+
+/* D : très gros numéro creux derrière l'affiche */
+.D .list { gap: 6px; }
+.D .row { display: flex; align-items: center; padding: 4px 8px; }
+.D .n { flex: none; width: 84px; text-align: right; font: 800 84px/1 "Baloo 2"; color: transparent; -webkit-text-stroke: 3px #5b6385; margin-right: -6px; letter-spacing: -2px; }
+.D .r1 .n { -webkit-text-stroke-color: var(--gold); } .D .r2 .n { -webkit-text-stroke-color: var(--silver); } .D .r3 .n { -webkit-text-stroke-color: var(--bronze); }
+.D img { position: relative; width: 66px; height: 98px; border-radius: 10px; border: 2px solid #0e1016; box-shadow: 0 5px 14px rgba(0,0,0,.5); flex: none; }
+.D .t { font-size: 17px; margin-left: 16px; }
+
+/* E : tableau compact */
+.E .list { border: 2px solid var(--line); border-radius: 14px; overflow: hidden; box-shadow: 0 4px 0 var(--line); }
+.E .row { display: flex; align-items: center; gap: 12px; padding: 8px 14px 8px 0; border-left: 5px solid #4a5688; background: var(--panel); }
+.E .row:nth-child(even) { background: #2c303d; }
+.E .r1 { border-left-color: var(--gold); } .E .r2 { border-left-color: var(--silver); } .E .r3 { border-left-color: var(--bronze); }
+.E .n { width: 40px; text-align: center; font: 700 16px Inter; color: var(--muted); font-variant-numeric: tabular-nums; }
+.E .r1 .n, .E .r2 .n, .E .r3 .n { color: #fff; }
+.E img { width: 36px; height: 54px; border-radius: 6px; }
+.E .t { font-size: 15px; font-weight: 700; }
+
+/* F : le n°1 en grand, le reste en liste simple */
+.F .hero { position: relative; display: flex; align-items: flex-end; gap: 16px; height: 190px; padding: 16px; border-radius: 18px; overflow: hidden; border: 2px solid var(--gold); box-shadow: 0 0 26px rgba(255,210,77,.3); margin-bottom: 12px; }
+.F .hero .bg { position: absolute; inset: -20px; background-size: cover; background-position: center 20%; filter: blur(12px); opacity: .6; }
+.F .hero::after { content: ''; position: absolute; inset: 0; background: linear-gradient(0deg, rgba(20,22,30,.95), rgba(20,22,30,.2)); }
+.F .hero > *:not(.bg) { position: relative; z-index: 2; }
+.F .hero img { width: 100px; height: 150px; border-radius: 12px; border: 2px solid var(--gold); box-shadow: 0 6px 18px rgba(0,0,0,.6); }
+.F .hero .k { color: var(--gold); font: 800 13px Inter; letter-spacing: .12em; text-transform: uppercase; }
+.F .hero .t { font-size: 24px; margin-top: 4px; }
+.F .list { gap: 8px; }
+.F .row { display: flex; align-items: center; gap: 12px; padding: 8px 12px 8px 8px; background: var(--panel); border: 2px solid var(--line); border-radius: 14px; }
+.F .n { width: 34px; height: 34px; flex: none; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: #343949; font: 800 16px 'Baloo 2'; }
+.F .r2 .n { background: var(--silver); color: #1a1d27; } .F .r3 .n { background: var(--bronze); color: #2a1405; }
+.F img { width: 44px; height: 64px; border-radius: 7px; }
+.F .t { font-size: 16px; }
+</style></head><body>
+<h1>Tops : propositions de design</h1>
+<div class="sub">Six façons de présenter un top. Dis-moi la lettre qui te plaît (ou mélange : « le numéro de B avec la ligne de A »).</div>
+<div class="grid" id="g"></div>
+<script>
+const base = 'https://cdn.myanimelist.net/images/anime/';
+const D = [['Cowboy Bebop', '4/19644.jpg'], ['Death Note', '1079/138100.jpg'], ['Fullmetal Alchemist: Brotherhood', '1223/96541.jpg'], ['Great Teacher Onizuka', '13/11460.jpg'], ['Ikoku Nikki', '1791/154233.jpg']];
+const rows = (cls, fn) => D.map((d, i) => `<div class="row r${Math.min(i + 1, 4)}">${fn(d, i + 1)}</div>`).join('') + `<div class="row empty r4" style="padding:12px 14px;border:2px dashed #3d4560;border-radius:14px;margin-top:8px">${6} · + Ajouter</div>`;
+const V = [
+  ['A', 'Sobre', 'Juste un grand chiffre, des traits fins. Or / argent / bronze pour les trois premiers.', () => '<div class="list">' + D.map((d, i) => `<div class="row r${Math.min(i + 1, 4)}"><span class="n">${i + 1}</span><img src="${base}${d[1]}"><span class="t">${d[0]}</span></div>`).join('') + '</div>'],
+  ['B', 'Pastille sur l’affiche', 'Le numéro est une pastille ronde posée sur le coin de la jaquette, dans une carte.', () => '<div class="list">' + D.map((d, i) => `<div class="row r${Math.min(i + 1, 4)}"><span class="p"><img src="${base}${d[1]}"><span class="n">${i + 1}</span></span><span class="t">${d[0]}</span></div>`).join('') + '</div>'],
+  ['C', 'Bannière floue', 'Chaque ligne a pour fond l’affiche floutée, comme sur les plateformes de streaming.', () => '<div class="list">' + D.map((d, i) => `<div class="row r${Math.min(i + 1, 4)}"><span class="bg" style="background-image:url(${base}${d[1]})"></span><span class="n">${i + 1}</span><img src="${base}${d[1]}"><span class="t">${d[0]}</span></div>`).join('') + '</div>'],
+  ['D', 'Gros chiffre creux', 'Style « Top 10 » de Netflix : un énorme numéro en contour, l’affiche devant.', () => '<div class="list">' + D.map((d, i) => `<div class="row r${Math.min(i + 1, 4)}"><span class="n">${i + 1}</span><img src="${base}${d[1]}"><span class="t">${d[0]}</span></div>`).join('') + '</div>'],
+  ['E', 'Tableau compact', 'Lignes serrées, petites affiches, un liseré de couleur à gauche. Idéal pour un Top 15.', () => '<div class="list">' + D.map((d, i) => `<div class="row r${Math.min(i + 1, 4)}"><span class="n">${i + 1}</span><img src="${base}${d[1]}"><span class="t">${d[0]}</span></div>`).join('') + '</div>'],
+  ['F', 'Le n°1 en vedette', 'Le premier en grande bannière dorée, les autres en liste simple avec une pastille.', () => `<div class="hero"><span class="bg" style="background-image:url(${base}${D[0][1]})"></span><img src="${base}${D[0][1]}"><div><div class="k">★ N°1</div><div class="t">${D[0][0]}</div></div></div><div class="list">` + D.slice(1).map((d, i) => `<div class="row r${Math.min(i + 2, 4)}"><span class="n">${i + 2}</span><img src="${base}${d[1]}"><span class="t">${d[0]}</span></div>`).join('') + '</div>'],
+];
+document.getElementById('g').innerHTML = V.map(([k, n, d, f]) => `<section class="v ${k}"><h2>${k} · ${n}</h2><p>${d}</p>${f()}</section>`).join('');
+</script></body></html>

@@ -80,6 +80,32 @@ let imgBase = 'https://cdn.myanimelist.net/images/anime/';
 
 const imgUrl = (i) => (i.startsWith('http') || i.startsWith('data:') ? i : imgBase + i);
 
+// Affiche qui ne charge pas (lien mort, site qui bloque) : on retrouve la couverture sur AniList grâce à l'id de la base ; sinon une case grise.
+let picIds = null;
+const covers = (() => { try { return JSON.parse(localStorage.getItem('ranku-covers') || '{}'); } catch { return {}; } })();
+async function aniCover(id) {
+  if (covers[id]) return covers[id];
+  try {
+    const res = await fetch('https://graphql.anilist.co', { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({ query: 'query($i:Int){Media(id:$i){coverImage{large}}}', variables: { i: id } }) });
+    const u = (await res.json())?.data?.Media?.coverImage?.large;
+    if (u) { covers[id] = u; try { localStorage.setItem('ranku-covers', JSON.stringify(covers)); } catch { /* plein */ } }
+    return u || null;
+  } catch { return null; }
+}
+document.addEventListener('error', async (e) => {
+  const im = e.target;
+  if (!(im instanceof HTMLImageElement) || im.dataset.fb || im.src.startsWith('data:')) return;
+  im.dataset.fb = '1';
+  let url = null;
+  if (animeData) {
+    if (!picIds) { picIds = new Map(); for (const r of animeData.rows) if (r[4]) picIds.set(imgUrl(r[3]), r[4]); }
+    const id = picIds.get(im.src);
+    if (id) url = await aniCover(id);
+  }
+  if (url) im.src = url; else im.classList.add('noimg');
+}, true);
+
 function card(list, key) {
   const it = list.items[key];
   return h('div', { class: 'card' + (key === freshKey ? ' pop' : '') + (UI.sel.has(key) ? ' sel' : ''), dataset: { k: key }, title: it.t },
@@ -90,6 +116,7 @@ function card(list, key) {
 
 function render() {
   if (UI.view === 'home') { renderHome(); return; }
+  if (UI.view === 'tiersIdx' || UI.view === 'topsIdx') { renderIndex(); return; }
   if (UI.view === 'top') { renderTop(); return; }
   showView();
   const list = cur();
@@ -302,32 +329,25 @@ $('#tierDel').onclick = () => {
   $('#dlgTier').close();
 };
 
-// ---------- Plusieurs tier lists : onglets en haut, plus de menu caché ----------
-// Le fond bleu de l'onglet actif est un élément à part qui reste en place : quand l'onglet change, il glisse.
+// ---------- Barre de navigation : retour, accueil, nom de la liste en cours ----------
 const PENCIL = '<svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16v4z"/></svg>';
-const tabPill = h('span', { class: 'tab-pill' });
-function placePill(animate = true) {
-  const on = $('#listTabs .chip.on');
-  if (!on) { tabPill.style.opacity = 0; return; }
-  tabPill.classList.toggle('ready', animate && tabPill.dataset.placed === '1');
-  Object.assign(tabPill.style, { left: on.offsetLeft + 'px', top: on.offsetTop + 'px', width: on.offsetWidth + 'px', height: on.offsetHeight + 'px', opacity: 1 });
-  tabPill.dataset.placed = '1';
-}
-window.addEventListener('resize', () => placePill(false));
-document.fonts?.ready.then(() => placePill(false));
-
+const ICON_BACK = '<svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>';
+const ICON_HOME = '<svg viewBox="0 0 24 24"><path d="M4 11l8-7 8 7M6 10v10h4v-6h4v6h4V10"/></svg>';
 function renderTabs() {
-  const box = $('#listTabs');
-  box.replaceChildren(
-    tabPill,
-    ...(UI.view === 'top' ? db.tops : db.lists).map((l) => {
-      const on = l.id === (UI.view === 'top' ? db.curTop : db.cur);
-      return h('button', { class: 'chip' + (on ? ' on' : ''), dataset: { list: l.id }, type: 'button', title: on ? 'Renommer ou supprimer cette liste' : null },
-        l.type === 'char' ? h('span', { class: 'ty' }, svgEl(USER_ICON)) : null, l.name, on ? h('span', { class: 'ed' }, svgEl(PENCIL)) : null);
-    }));
-  $('.chip.on', box)?.scrollIntoView({ inline: 'nearest', block: 'nearest' });
-  placePill();
+  const v = UI.view, box = $('#listTabs');
+  const inList = v === 'tiers' || v === 'top';
+  const l = inList ? cur() : null;
+  box.replaceChildren(...[
+    v === 'home' ? null : h('button', { class: 'nav-ic', id: 'navBack', type: 'button', 'aria-label': 'Retour', title: 'Retour' }, svgEl(ICON_BACK)),
+    v === 'home' ? null : h('button', { class: 'nav-ic', id: 'navHome', type: 'button', 'aria-label': 'Accueil', title: 'Accueil' }, svgEl(ICON_HOME)),
+    l ? h('button', { class: 'nav-title', id: 'navTitle', type: 'button', title: 'Renommer ou supprimer' },
+      l.type === 'char' ? h('span', { class: 'ty' }, svgEl(USER_ICON)) : null, l.name, h('span', { class: 'ed' }, svgEl(PENCIL))) : null].filter(Boolean));
 }
+$('#listTabs').addEventListener('click', (e) => {
+  if (e.target.closest('#navHome')) { go('home'); return; }
+  if (e.target.closest('#navBack')) { goBack(); return; }
+  if (e.target.closest('#navTitle')) { UI.view === 'top' ? openTop(db.curTop) : openList(db.cur); }
+});
 
 let editList = null; // id de la liste modifiée, null = création
 let delArmed = false;
@@ -351,8 +371,8 @@ $('#dlgList form').addEventListener('submit', (e) => {
   const name = $('#listName').value.trim();
   if (!name) return;
   if (editList) db.lists.find((l) => l.id === editList).name = name;
-  else { const l = newList(name, listType); db.lists.push(l); db.cur = l.id; }
-  save(); render();
+  else { const l = newList(name, listType); db.lists.push(l); db.cur = l.id; UI.view = 'tiersIdx'; }
+  save(); if (UI.view === 'tiersIdx') go('tiers'); else render();
 });
 $('#listDel').onclick = () => {
   if (db.lists.length === 1) return toast('Il faut garder au moins une tier list');
@@ -361,20 +381,8 @@ $('#listDel').onclick = () => {
   if (db.cur === editList) db.cur = db.lists[0].id;
   editList = null;
   $('#dlgList').close('deleted');
-  save(); render();
+  save(); if (UI.view === 'tiers') go('tiersIdx'); else render();
 };
-// Un clic sur un onglet change de liste ; un clic sur l'onglet déjà actif ouvre son renommage / sa suppression.
-$('#listTabs').addEventListener('click', (e) => {
-  const chip = e.target.closest('[data-list]');
-  if (!chip) return;
-  const top = UI.view === 'top';
-  if (chip.dataset.list === (top ? db.curTop : db.cur)) { top ? openTop(db.curTop) : openList(db.cur); return; }
-  if (top) db.curTop = chip.dataset.list; else db.cur = chip.dataset.list;
-  save(); render();
-  $(top ? '#topView' : '#board').animate([{ opacity: 0, transform: 'translateY(8px)' }, { opacity: 1, transform: 'none' }], { duration: 260, easing: 'ease-out' });
-});
-$('#btnNewList').onclick = () => (UI.view === 'top' ? openTop(null) : openList(null));
-
 $('#btnAbout').onclick = () => {
   $('#aboutDate').textContent = animeData ? `Base mise à jour le ${animeData.lastUpdate}.` : '';
   $('#dlgAbout').showModal();
@@ -542,11 +550,12 @@ function renderSearch(animate) {
     grid.replaceChildren(h('div', { class: 'sw-hint' },
       h('div', { class: 'big' }, '🤔'), h('p', {}, `Rien dans la base pour « ${q} ».`),
       h('small', {}, list.type === 'char' ? 'Essaie une autre orthographe (le nom en romaji).' : 'Les sorties très récentes ne sont pas toujours dedans.'),
-      list.type !== 'char' && (S.aniState === '' || S.aniState === 'error') ? h('button', { class: 'sw-go', id: 'srAni2', type: 'button' }, 'Chercher sur AniList') : null));
+      list.type !== 'char' && (S.aniState === '' || S.aniState === 'error') ? h('button', { class: 'sw-go', id: 'srAni2', type: 'button' }, 'Chercher sur AniList') : null,
+      h('button', { class: 'ghost sm cu-open', id: 'srCustom2', type: 'button' }, `＋ Créer « ${q} » moi-même`)));
     $('#srCnt').textContent = '';
   } else {
     grid.replaceChildren(...loc.map((it, i) => srItem(it, q, i)),
-      ani.length ? h('div', { class: 'sw-sep' }, 'Sur AniList') : null, ...ani.map((it, i) => srItem(it, q, i)));
+      ...(ani.length ? [h('div', { class: 'sw-sep' }, 'Sur AniList')] : []), ...ani.map((it, i) => srItem(it, q, i)));
     $('#srCnt').textContent = `${loc.length + ani.length} résultat${loc.length + ani.length > 1 ? 's' : ''}`;
   }
   grid.scrollTop = top;
@@ -733,10 +742,10 @@ function renderFiche() {
   const rows = animeData && gid ? groupRows(gid) : [];
 
   if (it.m && rows.length) {
-    $('#fiSub').textContent = `${rows.length} saison${rows.length > 1 ? 's' : ''}`;
+    $('#fiSub').textContent = list.slots ? '' : `${rows.length} saison${rows.length > 1 ? 's' : ''}`;
     box.replaceChildren(
-      h('p', { class: 'fi-hint' }, 'L’étoile choisit la jaquette de la carte. « Séparer » fait d’une saison une carte à part.'),
-      ...rows.map((r) => {
+      h('p', { class: 'fi-hint' }, list.slots ? 'Touche ★ sous la jaquette que tu préfères, ou utilise ta propre image avec les boutons du haut.' : 'L’étoile choisit la jaquette de la carte. « Séparer » fait d’une saison une carte à part.'),
+      ...rows.filter((r) => !list.slots || it.m.includes(rowKey(r))).map((r) => {
         const k = rowKey(r), on = it.m.includes(k), apart = !!list.items[k] && k !== ficheKey && !on;
         return h('div', { class: 'fi-row' },
           fiMember(r, { off: !on }),
@@ -1370,6 +1379,56 @@ async function runChars() {
 }
 $('#chClose').onclick = () => $('#dlgChars').close();
 
+// ---------- Cartes personnalisées : un nom + une image à soi (pour ce qui n'est pas dans la base) ----------
+const CU = { img: null };
+function cuMsg(t) { const m = $('#cuMsg'); m.textContent = t || ''; m.hidden = !t; }
+function cuShow() {
+  const p = $('#cuPic');
+  p.replaceChildren(CU.img ? h('img', { src: CU.img, alt: '' }) : h('span', {}, 'Pas d’image'));
+}
+function openCustom() {
+  const chr = cur().type === 'char';
+  CU.img = null; cuShow(); cuMsg('');
+  $('#cuTitle').textContent = chr ? 'Personnage personnalisé' : 'Animé personnalisé';
+  $('#cuSubWrap').hidden = !chr;
+  $('#cuName').placeholder = chr ? 'Ex. Janemba' : 'Ex. Mon animé préféré';
+  $('#cuName').value = $('#q').value.trim();
+  $('#cuSub').value = ''; $('#cuUrl').value = ''; $('#cuLink').hidden = true;
+  $('#dlgCustom').showModal();
+  $('#cuName').focus();
+}
+$('#srCustom').onclick = openCustom;
+$('#results').addEventListener('click', (e) => { if (e.target.closest('#srCustom2')) openCustom(); });
+$('#cuCancel').onclick = () => $('#dlgCustom').close();
+$('#cuPick').onclick = () => $('#cuFile').click();
+$('#cuFile').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  e.target.value = '';
+  if (!file) return;
+  try { CU.img = await fileToDataUrl(file); cuShow(); cuMsg(''); } catch { cuMsg('Cette image n’a pas pu être lue.'); }
+});
+$('#cuLinkBtn').onclick = () => { $('#cuLink').hidden = !$('#cuLink').hidden; if (!$('#cuLink').hidden) $('#cuUrl').focus(); };
+$('#cuUrlOk').onclick = async () => {
+  const url = $('#cuUrl').value.trim();
+  if (!/^https?:\/\//i.test(url)) { cuMsg('Colle l’adresse complète d’une image (https://…).'); return; }
+  const ok = await new Promise((r) => { const im = new Image(); im.crossOrigin = 'anonymous'; im.onload = () => r(true); im.onerror = () => r(false); im.src = url; });
+  if (!ok) { cuMsg('Ce site n’autorise pas l’image : enregistre-la sur ton appareil puis choisis-la avec « Image de l’appareil ».'); return; }
+  CU.img = url; cuShow(); cuMsg(''); $('#cuLink').hidden = true;
+};
+$('#cuOk').onclick = () => {
+  const name = $('#cuName').value.trim(), chr = cur().type === 'char';
+  if (!name) { cuMsg('Donne un nom à la carte.'); $('#cuName').focus(); return; }
+  if (!CU.img) { cuMsg('Ajoute une image : depuis ton appareil ou avec un lien.'); return; }
+  const key = 'x' + uid();
+  if (!addItem(key, name, CU.img, undefined, chr ? { a: $('#cuSub').value.trim() } : undefined)) { cuMsg('Ton top est complet.'); return; }
+  $('#dlgCustom').close();
+  S.session.add(key);
+  renderSearch(false);
+  toast(`« ${name} » ajouté`);
+  const t = cur();
+  if (t.slots && !t.slots.includes(null)) $('#dlgSearch').close();
+};
+
 // ---------- Changer l'image d'une carte (depuis l'appareil ou une adresse), retour à l'image d'origine ----------
 const MAX_SIDE = 450; // les images choisies sont réduites : elles sont enregistrées dans le navigateur
 
@@ -1629,9 +1688,11 @@ $('#dlgSort').addEventListener('keydown', (e) => {
 });
 
 // ---------- Navigation : accueil, tier lists, tops ----------
-const VIEWS = { '': 'home', '#tiers': 'tiers', '#tops': 'top' };
-const HASH = { home: '', tiers: '#tiers', top: '#tops' };
+const VIEWS = { '': 'home', '#tiers': 'tiersIdx', '#tier': 'tiers', '#tops': 'topsIdx', '#top': 'top' };
+const HASH = { home: '', tiersIdx: '#tiers', tiers: '#tier', topsIdx: '#tops', top: '#top' };
 UI.view = VIEWS[location.hash] || 'home'; // sans adresse précise, on ouvre l'accueil
+if (UI.view === 'top' && !db.tops.length) UI.view = 'topsIdx';
+const goBack = () => go(UI.view === 'tiers' ? 'tiersIdx' : UI.view === 'top' ? 'topsIdx' : 'home'); // retour d'un cran
 
 function go(view) {
   if (UI.view === view) { render(); return; }
@@ -1640,13 +1701,14 @@ function go(view) {
   window.scrollTo(0, 0);
   render();
 }
-window.addEventListener('popstate', () => { UI.view = VIEWS[location.hash] || 'home'; render(); });
+window.addEventListener('popstate', () => { UI.view = VIEWS[location.hash] || 'home'; if (UI.view === 'top' && !db.tops.length) UI.view = 'topsIdx'; render(); });
 $('.brand').onclick = () => go('home');
 
 // affiche seulement l'écran en cours ; la barre d'onglets et le « + » n'existent que dans les écrans de listes
 function showView() {
   document.body.dataset.view = UI.view;
   $('#homeView').hidden = UI.view !== 'home';
+  $('#idxView').hidden = UI.view !== 'tiersIdx' && UI.view !== 'topsIdx';
   $('#board').hidden = UI.view !== 'tiers';
   $('#topView').hidden = UI.view !== 'top';
   if (UI.view !== 'tiers') $('#selBar').hidden = true;
@@ -1666,31 +1728,54 @@ function homeCard(view, title, desc, meta, icon, cls) {
 
 function renderHome() {
   showView();
+  renderTabs();
   const s = (n) => (n > 1 ? 's' : '');
   const nL = db.lists.length, nT = db.tops.length;
-  const l = db.lists.find((x) => x.id === db.cur), t = db.tops.find((x) => x.id === db.curTop);
-  const recent = [];
-  if (l && Object.keys(l.items).length) recent.push(h('button', { class: 'hc-recent', dataset: { go: 'tiers', id: l.id }, type: 'button' }, h('i', {}, svgEl(ICON_TIERS)), h('span', {}, h('small', {}, 'Tier list'), h('b', {}, l.name)), h('em', {}, `${Object.keys(l.items).length} cartes`)));
-  if (t) recent.push(h('button', { class: 'hc-recent', dataset: { go: 'top', id: t.id }, type: 'button' }, h('i', {}, svgEl(ICON_TOP)), h('span', {}, h('small', {}, 'Top'), h('b', {}, t.name)), h('em', {}, `${t.slots.filter(Boolean).length} / ${t.size}`)));
   $('#homeView').replaceChildren(
     h('h2', { class: 'home-title' }, 'Que veux-tu faire ?'),
     h('div', { class: 'home-grid' },
-      homeCard('tiers', 'Tier lists', 'Classe tes animés et tes personnages par niveaux : S, A, B…', `${nL} liste${s(nL)}`, ICON_TIERS, 'c-tier'),
-      homeCard('top', 'Tops', 'Fais ton top 5, 10 ou 15, avec un vrai podium.', nT ? `${nT} top${s(nT)}` : 'Crée ton premier top', ICON_TOP, 'c-top')),
-    recent.length ? h('div', { class: 'home-recent' }, h('div', { class: 'hr-t' }, 'Reprendre'), ...recent) : null);
+      homeCard('tiersIdx', 'Tier lists', 'Classe tes animés et tes personnages par niveaux : S, A, B…', `${nL} liste${s(nL)}`, ICON_TIERS, 'c-tier'),
+      homeCard('topsIdx', 'Tops', 'Fais ton top 5, 10 ou 15, numéroté de 1 à N.', nT ? `${nT} top${s(nT)}` : 'Crée ton premier top', ICON_TOP, 'c-top')));
 }
 
 $('#homeView').addEventListener('click', (e) => {
   const b = e.target.closest('[data-go]');
   if (!b) return;
-  if (b.dataset.id) { if (b.dataset.go === 'top') db.curTop = b.dataset.id; else db.cur = b.dataset.id; save(); }
   go(b.dataset.go);
+});
+
+// ---------- Index : toutes mes tier lists / tous mes tops ----------
+function renderIndex() {
+  showView();
+  renderTabs();
+  const tops = UI.view === 'topsIdx', coll = tops ? db.tops : db.lists;
+  const count = (l) => (tops ? `${l.slots.filter(Boolean).length} / ${l.size}` : `${Object.keys(l.items).length} carte${Object.keys(l.items).length > 1 ? 's' : ''}`);
+  const cards = coll.map((l) => h('div', { class: 'idx-card', dataset: { id: l.id } },
+    h('button', { class: 'idx-open', type: 'button' },
+      h('i', {}, svgEl(tops ? ICON_TOP : ICON_TIERS)),
+      h('span', {}, h('b', {}, l.name), h('small', {}, (l.type === 'char' ? 'Personnages · ' : 'Animés · ') + (tops ? 'Top ' + l.size + ' · ' : '') + count(l)))),
+    h('button', { class: 'idx-ed', type: 'button', 'aria-label': 'Modifier', title: 'Renommer ou supprimer' }, svgEl(PENCIL))));
+  cards.push(h('button', { class: 'idx-new', type: 'button' }, h('i', {}, '+'), tops ? 'Nouveau top' : 'Nouvelle tier list'));
+  $('#idxView').replaceChildren(
+    h('h2', { class: 'home-title' }, tops ? 'Mes tops' : 'Mes tier lists'),
+    ...(coll.length ? [] : [h('p', { class: 'idx-empty' }, tops ? 'Aucun top pour l’instant : crée ton premier top 5, 10 ou 15.' : 'Aucune tier list.')]),
+    h('div', { class: 'idx-grid' }, ...cards));
+}
+$('#idxView').addEventListener('click', (e) => {
+  const tops = UI.view === 'topsIdx';
+  if (e.target.closest('.idx-new')) { tops ? openTop(null) : openList(null); return; }
+  const card = e.target.closest('.idx-card');
+  if (!card) return;
+  const id = card.dataset.id;
+  if (e.target.closest('.idx-ed')) { if (tops) { db.curTop = id; openTop(id); } else { db.cur = id; openList(id); } return; }
+  if (tops) db.curTop = id; else db.cur = id;
+  save(); go(tops ? 'top' : 'tiers');
 });
 
 // ---------- Tops ----------
 const curTop = () => db.tops.find((t) => t.id === db.curTop) || db.tops[0] || null;
 const CROWN = '<svg viewBox="0 0 24 24"><path d="M3 8l4.5 4L12 5l4.5 7L21 8l-2 11H5L3 8z"/></svg>';
-let topSortables = [];
+let topSortable = null;
 
 // les places se remplissent de gauche à droite, sans trou
 function compactSlots(list) {
@@ -1698,75 +1783,63 @@ function compactSlots(list) {
   list.slots = keys.concat(Array(Math.max(0, list.size - keys.length)).fill(null));
 }
 
+const topSub = (it) => it.a || '';
 function topSlot(top, i) {
   const k = top.slots[i], it = k && top.items[k], rank = i + 1;
-  const cls = 'tp-slot r' + Math.min(rank, 4);
-  const badge = h('span', { class: 'tp-rank' }, String(rank));
+  const cls = 'tp-row r' + Math.min(rank, 4);
+  const num = h('span', { class: 'tp-num' }, String(rank));
   if (!it) {
-    return h('div', { class: cls + ' empty', dataset: { k: '', i: String(i) } }, badge,
+    return h('div', { class: 'tp-slot ' + cls + ' empty', dataset: { k: '', i: String(i) } }, num,
       h('button', { class: 'tp-add', type: 'button', 'aria-label': 'Ajouter à la place ' + rank }, h('i', {}, '+'), h('small', {}, 'Ajouter')));
   }
-  return h('div', { class: cls + ' filled', dataset: { k, i: String(i) }, title: it.t },
-    rank === 1 ? h('span', { class: 'tp-crown' }, svgEl(CROWN)) : null,
-    h('div', { class: 'tp-card' },
-      h('img', { src: imgUrl(it.i), alt: it.t, loading: 'lazy', draggable: 'false' }),
-      it.m && it.m.length > 1 ? h('span', { class: 'cnt' }, '×' + it.m.length) : null),
-    badge,
-    h('span', { class: 'tp-name' }, it.t));
+  return h('div', { class: 'tp-slot ' + cls + ' filled', dataset: { k, i: String(i) } },
+    h('span', { class: 'tp-bg', style: `background-image:url("${imgUrl(it.i)}")` }), num,
+    h('div', { class: 'tp-card' }, h('img', { src: imgUrl(it.i), alt: '', loading: 'lazy', draggable: 'false' })),
+    h('div', { class: 'tp-txt' }, h('b', { class: 'tp-name' }, it.t), topSub(it) ? h('small', {}, topSub(it)) : null));
 }
 
 function renderTop() {
   showView();
   renderTabs();
-  topSortables.forEach((s) => s.destroy());
-  topSortables = [];
   const view = $('#topView'), top = curTop();
   if (!top) {
     view.replaceChildren(h('div', { class: 'tp-empty' },
       h('div', { class: 'big' }, '🏆'), h('p', {}, 'Aucun top pour l’instant'),
-      h('small', {}, 'Crée ton top 5, 10 ou 15 : chaque place est numérotée, avec un vrai podium pour les trois premiers.'),
+      h('small', {}, 'Crée ton top 5, 10 ou 15 : chaque place est numérotée, avec l’affiche et le titre.'),
       h('button', { class: 'primary', id: 'tpNew', type: 'button' }, 'Créer mon premier top')));
     return;
   }
   const filled = top.slots.filter(Boolean).length;
-  // le podium est rangé dans l'ordre d'affichage : 2e, 1er, 3e
-  const podium = [1, 0, 2].filter((i) => i < top.size).map((i) => topSlot(top, i));
-  const rest = top.slots.slice(3).map((_, j) => topSlot(top, j + 3));
-  view.replaceChildren(
+  topSortable?.destroy(); topSortable = null;
+  const rows = top.slots.map((_, i) => topSlot(top, i));
+  view.replaceChildren(...[
     h('div', { class: 'board-tools' },
       h('span', { class: 'tp-count' }, `${filled} / ${top.size} places`),
       h('span', { class: 'tp-btns' },
-        h('button', { class: 'share-btn', id: 'tpFill', type: 'button' }, svgEl(IMPORT_ICON), 'Remplir depuis une tier list'),
         h('button', { class: 'share-btn', type: 'button' }, svgEl(SHARE_ICON), 'Partager'))),
     h('button', { class: 'add-anime', type: 'button' }, svgEl('<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>'),
       h('span', { class: 'aa-t' }, top.type === 'char' ? 'Rechercher un personnage pour mon top…' : 'Rechercher un animé pour mon top…'), h('kbd', {}, '/'), h('span', { class: 'aa-b' }, 'Ajouter')),
-    h('div', { class: 'tp-wrap' }, h('div', { class: 'tp-podium' }, podium), rest.length ? h('div', { class: 'tp-rest' }, rest) : null));
-
-  for (const el of view.querySelectorAll('.tp-podium, .tp-rest')) {
-    topSortables.push(new Sortable(el, {
-      group: 'top', animation: 160, forceFallback: true, fallbackOnBody: true, fallbackTolerance: 3,
-      delay: 160, delayOnTouchOnly: true, touchStartThreshold: 6, emptyInsertThreshold: 30, swapThreshold: 0.6,
-      filter: '.empty', preventOnFilter: false, // une place vide ne se déplace pas
-      ghostClass: 'sortable-ghost', chosenClass: 'sortable-chosen',
-      onEnd: () => { lastDrag = Date.now(); syncTop(); },
-    }));
-  }
+    h('div', { class: 'tp-list' }, rows),
+    filled > 1 ? h('p', { class: 'tp-hint' }, 'Glisse une carte pour changer son rang. Touche-la pour changer sa jaquette.') : null].filter(Boolean));
+  // glisser-déposer : le classement est relu depuis l'ordre des lignes
+  topSortable = new Sortable(view.querySelector('.tp-list'), {
+    animation: 160, forceFallback: true, fallbackOnBody: true, fallbackTolerance: 3,
+    delay: 160, delayOnTouchOnly: true, touchStartThreshold: 6, swapThreshold: 0.6,
+    draggable: '.tp-row.filled', ghostClass: 'sortable-ghost', chosenClass: 'sortable-chosen',
+    onEnd: () => { lastDrag = Date.now(); syncTop(); },
+  });
 }
 
-// relit le classement après un glisser-déposer : podium (2e, 1er, 3e) puis le reste
+// relit le classement depuis l'ordre des lignes après un glisser-déposer
 function syncTop() {
   const top = curTop();
-  const keys = (sel) => [...document.querySelectorAll(sel + ' .tp-slot')].map((c) => c.dataset.k);
-  const flat = [...keys('.tp-podium'), ...keys('.tp-rest')];
-  const rank = flat.length >= 3 ? [flat[1], flat[0], flat[2], ...flat.slice(3)] : flat;
-  top.slots = rank.filter(Boolean);
+  top.slots = [...document.querySelectorAll('#topView .tp-row.filled')].map((r) => r.dataset.k);
   compactSlots(top);
   save(); renderTop();
 }
 
 $('#topView').addEventListener('click', (e) => {
   if (e.target.closest('#tpNew')) { openTop(null); return; }
-  if (e.target.closest('#tpFill')) { openFill(); return; }
   if (e.target.closest('.share-btn')) { openShare(); return; }
   if (e.target.closest('.add-anime') || e.target.closest('.tp-add')) { openSearch(); return; }
   const slot = e.target.closest('.tp-slot.filled');
@@ -1819,8 +1892,9 @@ $('#dlgTop form').addEventListener('submit', (e) => {
   } else {
     const t = { id: uid(), name, type: TS.type, size: TS.size, items: {}, slots: Array(TS.size).fill(null), pool: [], tiers: [] };
     db.tops.push(t); db.curTop = t.id;
+    UI.view = 'topsIdx';
   }
-  save(); render();
+  save(); if (UI.view === 'topsIdx') go('top'); else render();
 });
 $('#topDel').onclick = () => {
   if (!topDelArmed) { topDelArmed = true; $('#topDel').textContent = 'Sûr ? Appuie pour supprimer'; return; }
@@ -1828,63 +1902,16 @@ $('#topDel').onclick = () => {
   if (db.curTop === editTopId) db.curTop = db.tops[0]?.id || null;
   editTopId = null;
   $('#dlgTop').close('deleted');
-  save(); render();
+  save(); if (UI.view === 'top') go('topsIdx'); else render();
 };
 
-// ----- remplir un top depuis une tier list (S d'abord, puis A, B…)
-const FL = { src: null };
-function fillSources() {
-  const top = curTop();
-  return db.lists.filter((l) => (l.type || 'anime') === top.type && l.tiers.some((t) => t.items.some((k) => l.items[k])));
-}
-function renderFillSources() {
-  const lists = fillSources();
-  if (!lists.some((l) => l.id === FL.src)) FL.src = lists[0]?.id || null;
-  $('#flSrc').replaceChildren(
-    h('div', { class: 'imp-q' }, 'À partir de quelle tier list ?'),
-    ...(lists.length
-      ? lists.map((l) => h('button', { class: 'imp-opt' + (FL.src === l.id ? ' on' : ''), dataset: { src: l.id }, type: 'button' },
-        h('i', { class: 'rd' }), h('span', {}, h('b', {}, l.name), h('small', {}, `${l.tiers.reduce((n, t) => n + t.items.filter((k) => l.items[k]).length, 0)} cartes rangées dans les tiers`))))
-      : [h('p', { class: 'imp-note' }, 'Aucune de tes tier lists de ce type n’a encore de cartes rangées dans les tiers. Classe d’abord quelques animés (ou personnages), puis reviens ici.')]));
-  $('#flGo').disabled = !lists.length;
-}
-$('#flSrc').addEventListener('click', (e) => { const b = e.target.closest('[data-src]'); if (b) { FL.src = b.dataset.src; renderFillSources(); } });
-function openFill() {
-  const top = curTop();
-  if (!top.slots.includes(null)) { toast('Ton top est déjà complet'); return; }
-  $('#flState').hidden = true;
-  renderFillSources();
-  $('#dlgFill').showModal();
-}
-$('#flGo').onclick = () => {
-  const top = curTop(), src = db.lists.find((l) => l.id === FL.src);
-  if (!src) return;
-  let added = 0;
-  outer: for (const t of src.tiers) for (const k of t.items) {
-    if (!src.items[k] || top.items[k]) continue;
-    const i = top.slots.indexOf(null);
-    if (i < 0) break outer;
-    top.items[k] = JSON.parse(JSON.stringify(src.items[k]));
-    top.slots[i] = k; added++;
-  }
-  save(); renderTop();
-  $('#dlgFill').close();
-  toast(added ? `${added} place${added > 1 ? 's' : ''} remplie${added > 1 ? 's' : ''} depuis « ${src.name} »` : 'Rien à ajouter : tout est déjà dans ton top');
-};
-$('#flClose').onclick = () => $('#dlgFill').close();
-
-// ----- image du top : podium + classement, même esprit que l'image des tier lists
+// ----- image du top : la liste numérotée, comme à l'écran
 async function buildTopImage(top) {
-  try { await Promise.all([document.fonts.load('800 60px "Baloo 2"'), document.fonts.load('600 14px Inter')]); } catch { /* polices système */ }
-  const W = 1200, PAD = 24, IN = 34, GAP = 16;
+  try { await Promise.all([document.fonts.load('800 60px "Baloo 2"'), document.fonts.load('800 30px Inter'), document.fonts.load('600 20px Inter')]); } catch { /* polices système */ }
+  const W = 900, PAD = 24, IN = 22, RH = 120, GAP = 12, NW = 96, PW = 78, PH = 108;
   const keys = top.slots.filter((k) => k && top.items[k]);
-  const P1 = [210, 298], P2 = [172, 244], R = [150, 213];
-  const perRow = 6, rest = keys.slice(3), restRows = Math.ceil(rest.length / perRow);
-  const podiumH = 46 + P1[1] + 70;
-  const restH = restRows ? restRows * (R[1] + 76) : 0;
-  const boxH = IN * 2 + podiumH + restH - (restRows ? 20 : 0);
+  const boxH = IN * 2 + keys.length * RH + (keys.length - 1) * GAP;
   const H = PAD * 2 + boxH + 5;
-
   const imgs = new Map(await Promise.all(keys.map(async (k) => [k, await loadImage(imgUrl(top.items[k].i))])));
   const cv = document.createElement('canvas');
   cv.width = W; cv.height = H;
@@ -1892,42 +1919,34 @@ async function buildTopImage(top) {
   ctx.fillStyle = '#23262f'; ctx.fillRect(0, 0, W, H);
   const x0 = PAD, y0 = PAD, w = W - PAD * 2;
   rr(ctx, x0, y0 + 5, w, boxH, 18); ctx.fillStyle = 'rgba(0,0,0,.4)'; ctx.fill();
-  ctx.save(); rr(ctx, x0, y0, w, boxH, 18); ctx.clip();
-  ctx.fillStyle = '#1c1f27'; ctx.fillRect(x0, y0, w, boxH);
-  const halo = ctx.createRadialGradient(W / 2, y0 + IN + 46 + P1[1] / 2, 20, W / 2, y0 + IN + 46 + P1[1] / 2, 420); // halo doré derrière le 1er
-  halo.addColorStop(0, 'rgba(255,210,77,.28)'); halo.addColorStop(1, 'rgba(255,210,77,0)');
-  ctx.fillStyle = halo; ctx.fillRect(x0, y0, w, boxH);
-  ctx.restore();
-
-  const MEDAL = ['#ffd24d', '#cfd6e4', '#e0a070'];
+  rr(ctx, x0, y0, w, boxH, 18); ctx.fillStyle = '#1c1f27'; ctx.fill();
+  const COL = ['#ffd24d', '#cfd6e4', '#e0a070'];
   const fit = (t, max, font) => { ctx.font = font; if (ctx.measureText(t).width <= max) return t; while (t.length > 1 && ctx.measureText(t + '…').width > max) t = t.slice(0, -1); return t + '…'; };
-  const place = (k, rank, x, y, [pw, ph], big) => {
-    drawPoster(ctx, imgs.get(k), top.items[k].t, x, y, pw, ph);
-    const r = big ? 24 : 20, cx = x + pw / 2, cy = y + ph; // pastille du rang, à cheval sur le bas de l'affiche
-    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fillStyle = MEDAL[rank - 1] || '#4f8cff'; ctx.fill();
-    ctx.lineWidth = 3; ctx.strokeStyle = '#0f1117'; ctx.stroke();
-    ctx.fillStyle = rank <= 3 ? '#2a1a00' : '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
-    ctx.font = `800 ${big ? 26 : 22}px "Baloo 2", sans-serif`; ctx.fillText(String(rank), cx, cy + (big ? 9 : 8));
-    ctx.fillStyle = '#e9ecf8';
-    const f = `700 ${big ? 17 : 14}px Inter, sans-serif`;
-    ctx.font = f; ctx.fillText(fit(top.items[k].t, pw + 20, f), cx, cy + r + (big ? 24 : 20));
-  };
-
-  const cx = W / 2, py = y0 + IN + 46;
-  if (keys[0]) {
-    place(keys[0], 1, cx - P1[0] / 2, py, P1, true);
-    ctx.fillStyle = '#ffd24d'; // couronne
-    const c = { x: cx, y: py - 14 };
-    ctx.beginPath(); ctx.moveTo(c.x - 24, c.y); ctx.lineTo(c.x - 17, c.y - 22); ctx.lineTo(c.x - 8, c.y - 8); ctx.lineTo(c.x, c.y - 28); ctx.lineTo(c.x + 8, c.y - 8); ctx.lineTo(c.x + 17, c.y - 22); ctx.lineTo(c.x + 24, c.y); ctx.closePath(); ctx.fill();
-    ctx.lineWidth = 3; ctx.strokeStyle = '#0f1117'; ctx.stroke();
-  }
-  if (keys[1]) place(keys[1], 2, cx - P1[0] / 2 - 46 - P2[0], py + P1[1] - P2[1], P2, false);
-  if (keys[2]) place(keys[2], 3, cx + P1[0] / 2 + 46, py + P1[1] - P2[1], P2, false);
-
-  const ry = py + P1[1] + 70;
-  const rowW = perRow * R[0] + (perRow - 1) * GAP, rx = (W - rowW) / 2;
-  rest.forEach((k, i) => place(k, i + 4, rx + (i % perRow) * (R[0] + GAP), ry + Math.floor(i / perRow) * (R[1] + 76), R, false));
-
+  keys.forEach((k, i) => {
+    const it = top.items[k], y = y0 + IN + i * (RH + GAP), x = x0 + IN, rw = w - IN * 2, im = imgs.get(k);
+    ctx.save(); rr(ctx, x, y, rw, RH, 14); ctx.clip();
+    ctx.fillStyle = '#1c1f27'; ctx.fillRect(x, y, rw, RH);
+    if (im && im.width) { // affiche agrandie et floutée en fond
+      ctx.globalAlpha = .55;
+      if ('filter' in ctx) ctx.filter = 'blur(14px) saturate(1.2)';
+      const s = Math.max((rw + 60) / im.width, (RH + 60) / im.height), dw = im.width * s, dh = im.height * s;
+      ctx.drawImage(im, x - 30, y - 30 - (dh - RH) * 0.2, dw, dh);
+      ctx.filter = 'none'; ctx.globalAlpha = 1;
+    }
+    const g = ctx.createLinearGradient(x, 0, x + rw, 0);
+    g.addColorStop(0, 'rgba(20,22,30,.92)'); g.addColorStop(.55, 'rgba(20,22,30,.55)'); g.addColorStop(1, 'rgba(20,22,30,.2)');
+    ctx.fillStyle = g; ctx.fillRect(x, y, rw, RH);
+    ctx.restore();
+    rr(ctx, x, y, rw, RH, 14); ctx.lineWidth = 2; ctx.strokeStyle = '#12141b'; ctx.stroke();
+    ctx.fillStyle = COL[i] || '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.font = '800 ' + (i < 9 ? 54 : 44) + 'px "Baloo 2", sans-serif'; ctx.fillText(String(i + 1), x + NW / 2, y + RH / 2 + 4);
+    drawPoster(ctx, im, it.t, x + NW, y + (RH - PH) / 2, PW, PH);
+    const tx = x + NW + PW + 20, tw = x + rw - tx - 18, sub = topSub(it);
+    ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'; ctx.fillStyle = '#f2f4fb';
+    const f = '800 28px Inter, sans-serif';
+    ctx.font = f; ctx.fillText(fit(it.t, tw, f), tx, y + (sub ? 58 : 70));
+    if (sub) { const f2 = '600 20px Inter, sans-serif'; ctx.fillStyle = '#b4bbd6'; ctx.font = f2; ctx.fillText(fit(sub, tw, f2), tx, y + 90); }
+  });
   rr(ctx, x0, y0, w, boxH, 18); ctx.lineWidth = 2; ctx.strokeStyle = '#12141b'; ctx.stroke();
   return cv;
 }

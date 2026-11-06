@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Tops : variantes du style C</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800&family=Inter:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root { --bg: #23262f; --line: #12141b; --text: #eef0f7; --muted: #8f98b8; --accent: #4f8cff; --gold: #ffd24d; --silver: #cfd6e4; --bronze: #e0a070; }
+* { box-sizing: border-box; margin: 0; }
+body { background: var(--bg); color: var(--text); font: 500 15px Inter, sans-serif; padding: 18px 16px 60px; }
+h1 { font: 800 28px 'Baloo 2'; } .sub { color: var(--muted); margin: 4px 0 26px; max-width: 700px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 34px 24px; max-width: 1250px; }
+.v h2 { font: 800 18px 'Baloo 2'; margin-bottom: 2px; } .v p { color: var(--muted); font-size: 13px; margin-bottom: 12px; min-height: 2.6em; }
+.list { display: flex; flex-direction: column; gap: 10px; }
+.row { position: relative; display: flex; align-items: center; overflow: hidden; border: 2px solid var(--line); background: #1c1f27; }
+.bg { position: absolute; inset: -20px; background-size: cover; background-position: center 25%; filter: blur(14px) saturate(1.2); opacity: .55; }
+.row > *:not(.bg) { position: relative; z-index: 2; }
+.row img { display: block; object-fit: cover; }
+.t { font-weight: 800; line-height: 1.2; }
+.r1 .n { color: var(--gold); } .r2 .n { color: var(--silver); } .r3 .n { color: var(--bronze); }
+
+/* C1 : l'actuelle */
+.C1 .row { height: 92px; gap: 14px; padding: 0 16px 0 12px; border-radius: 16px; }
+.C1 .row::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, rgba(20,22,30,.92), rgba(20,22,30,.55) 55%, rgba(20,22,30,.2)); }
+.C1 .n { width: 44px; text-align: center; font: 800 38px 'Baloo 2'; color: #fff; text-shadow: 0 2px 8px rgba(0,0,0,.6); }
+.C1 img { width: 52px; height: 78px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,.5); }
+.C1 .t { font-size: 17px; text-shadow: 0 1px 6px rgba(0,0,0,.7); }
+
+/* C2 : plus aéré, grande affiche, numéro plus discret */
+.C2 .row { height: 120px; gap: 18px; padding: 0 18px 0 14px; border-radius: 20px; }
+.C2 .bg { opacity: .7; }
+.C2 .row::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, rgba(18,20,28,.9), rgba(18,20,28,.45) 60%, rgba(18,20,28,.1)); }
+.C2 .n { width: 36px; text-align: center; font: 800 28px 'Baloo 2'; color: rgba(255,255,255,.75); }
+.C2 .r1 .n, .C2 .r2 .n, .C2 .r3 .n { color: inherit; }
+.C2 .r1 .n { color: var(--gold); } .C2 .r2 .n { color: var(--silver); } .C2 .r3 .n { color: var(--bronze); }
+.C2 img { width: 66px; height: 99px; border-radius: 10px; box-shadow: 0 6px 16px rgba(0,0,0,.55); }
+.C2 .t { font-size: 18px; }
+
+/* C3 : gros numéro en filigrane à droite, ligne nette */
+.C3 .row { height: 96px; gap: 14px; padding: 0 16px 0 14px; border-radius: 16px; }
+.C3 .row::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, rgba(20,22,30,.94), rgba(20,22,30,.6) 70%, rgba(20,22,30,.35)); }
+.C3 .n { order: 3; position: absolute !important; right: 14px; top: 50%; translate: 0 -50%; font: 800 84px/1 'Baloo 2'; color: rgba(255,255,255,.14); z-index: 1 !important; letter-spacing: -3px; }
+.C3 .r1 .n { color: rgba(255,210,77,.4); } .C3 .r2 .n { color: rgba(207,214,228,.3); } .C3 .r3 .n { color: rgba(224,160,112,.32); }
+.C3 img { width: 54px; height: 81px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,.5); margin-left: 4px; }
+.C3 .t { font-size: 17px; }
+.C3 .row::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 6px; z-index: 3; background: #4f8cff; }
+.C3 .r1::before { background: var(--gold); } .C3 .r2::before { background: var(--silver); } .C3 .r3::before { background: var(--bronze); }
+
+/* C4 : le podium respire — les 3 premiers plus grands, le reste compact */
+.C4 .row { gap: 14px; padding: 0 16px 0 12px; border-radius: 16px; }
+.C4 .row::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, rgba(20,22,30,.92), rgba(20,22,30,.55) 55%, rgba(20,22,30,.2)); }
+.C4 .r1 { height: 128px; border-color: var(--gold); box-shadow: 0 0 22px rgba(255,210,77,.3); } .C4 .r2 { height: 106px; border-color: #8e97ad; } .C4 .r3 { height: 96px; border-color: #a9724a; }
+.C4 .r4 { height: 70px; }
+.C4 .n { width: 40px; text-align: center; font: 800 34px 'Baloo 2'; color: #fff; }
+.C4 .r1 .n { font-size: 50px; width: 52px; } .C4 .r4 .n { font-size: 26px; color: #c9cde0; }
+.C4 .r1 img { width: 72px; height: 108px; } .C4 .r2 img { width: 60px; height: 90px; } .C4 .r3 img { width: 54px; height: 81px; } .C4 .r4 img { width: 38px; height: 57px; }
+.C4 img { border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,.5); }
+.C4 .t { font-size: 16px; } .C4 .r1 .t { font-size: 21px; } .C4 .r4 .t { font-size: 15px; }
+
+/* C5 : verre dépoli, texte sur une pastille translucide */
+.C5 .row { height: 96px; gap: 14px; padding: 0 12px; border-radius: 22px; }
+.C5 .bg { opacity: .85; filter: blur(10px) saturate(1.4); }
+.C5 .row::after { content: ''; position: absolute; inset: 0; background: rgba(15,17,24,.28); }
+.C5 .n { width: 40px; height: 40px; flex: none; border-radius: 50%; display: flex; align-items: center; justify-content: center; font: 800 20px 'Baloo 2'; background: rgba(15,17,24,.65); border: 2px solid rgba(255,255,255,.18); color: #fff; }
+.C5 .r1 .n { background: var(--gold); color: #3a2600; border-color: #fff3; } .C5 .r2 .n { background: var(--silver); color: #1a1d27; } .C5 .r3 .n { background: var(--bronze); color: #2a1405; }
+.C5 img { width: 54px; height: 81px; border-radius: 9px; box-shadow: 0 5px 14px rgba(0,0,0,.5); }
+.C5 .t { flex: 1; align-self: center; padding: 10px 14px; border-radius: 14px; background: rgba(15,17,24,.55); backdrop-filter: blur(6px); font-size: 16px; }
+
+/* C6 : bannière nette (sans flou), affiche étirée en fond */
+.C6 .row { height: 88px; gap: 14px; padding: 0 16px 0 12px; border-radius: 14px; background-size: cover; background-position: center 22%; }
+.C6 .row::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, rgba(14,16,22,.96) 0%, rgba(14,16,22,.8) 40%, rgba(14,16,22,.35) 100%); }
+.C6 .bg { display: none; }
+.C6 .n { width: 40px; text-align: center; font: 800 34px 'Baloo 2'; color: #fff; }
+.C6 img { width: 48px; height: 72px; border-radius: 7px; box-shadow: 0 4px 12px rgba(0,0,0,.6); }
+.C6 .t { font-size: 17px; }
+</style></head><body>
+<h1>Tops : variantes du style C</h1>
+<div class="sub">C1 est celle que tu as en ce moment. Les autres changent un point à la fois : taille, numéro, flou, mise en avant du podium. Dis-moi la lettre, ou ce que tu veux piocher (« le numéro de C3 avec la taille de C2 »).</div>
+<div class="grid" id="g"></div>
+<script>
+const base = 'https://cdn.myanimelist.net/images/anime/';
+const D = [['Cowboy Bebop', '4/19644.jpg'], ['Death Note', '1079/138100.jpg'], ['Fullmetal Alchemist: Brotherhood', '1223/96541.jpg'], ['Great Teacher Onizuka', '13/11460.jpg'], ['Ikoku Nikki', '1791/154233.jpg']];
+const V = [
+  ['C1', 'Actuelle', 'Fond flou, numéro simple, ligne de 92 px.'],
+  ['C2', 'Plus grande et aérée', 'Affiches plus grandes, lignes hautes, numéro plus discret : on voit mieux les jaquettes.'],
+  ['C3', 'Numéro en filigrane', 'Le gros numéro est en transparence à droite, un liseré de couleur à gauche. L’affiche garde la vedette.'],
+  ['C4', 'Podium mis en avant', 'Le n°1 est plus grand avec un halo doré, puis 2 et 3 moyens, le reste compact. Plus de hiérarchie.'],
+  ['C5', 'Verre dépoli', 'Fond plus lumineux et coloré, numéro en pastille ronde, titre sur une pastille translucide.'],
+  ['C6', 'Bannière nette', 'Pas de flou : l’affiche est étirée en bandeau net, assombrie à gauche. Plus compact, plus « cinéma ».'],
+];
+document.getElementById('g').innerHTML = V.map(([k, n, d]) => `<section class="v ${k}"><h2>${k} · ${n}</h2><p>${d}</p><div class="list">` + D.map((x, i) => {
+  const p = base + x[1], cls = 'r' + Math.min(i + 1, 4);
+  return `<div class="row ${cls}"${k === 'C6' ? ` style="background-image:url(${p})"` : ''}><span class="bg" style="background-image:url(${p})"></span><span class="n">${i + 1}</span><img src="${p}"><span class="t">${x[0]}</span></div>`;
+}).join('') + '</div></section>').join('');
+</script></body></html>

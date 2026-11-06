@@ -15,11 +15,11 @@
 <body>
 <header class="top">
   <h1 class="brand"><img class="mark" src="icons/icon-192.png" alt="" width="38" height="38"><span>Ran</span><b>ku</b></h1>
-  <nav id="listTabs" class="list-tabs" aria-label="Mes tier lists"></nav>
-  <button id="btnNewList" class="newlist" type="button" aria-label="Nouvelle tier list" title="Nouvelle tier list"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+  <nav id="listTabs" class="list-tabs" aria-label="Navigation"></nav>
 </header>
 
 <main id="homeView" hidden></main>
+<main id="idxView" hidden></main>
 <main id="board" hidden></main>
 <main id="topView" hidden></main>
 <footer class="site-foot"><button id="btnAbout" class="link" type="button">À propos et sources des données</button></footer>
@@ -36,11 +36,35 @@
   <div class="sw-cnt" id="srCnt"></div>
   <div class="sw-grid" id="results"></div>
   <div class="sw-foot">
+    <button class="sw-pill cu-btn" id="srCustom" type="button"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Carte perso</button>
     <button class="sw-link" id="srAni" type="button" hidden></button>
     <span class="sw-count" id="srCount"></span>
     <button class="sw-go" id="srDone" type="button">Terminé</button>
   </div>
   <div class="sw-toast" id="srToast"></div>
+</dialog>
+
+<dialog id="dlgCustom" class="modal">
+  <div class="cu-in">
+    <h2 id="cuTitle">Carte personnalisée</h2>
+    <p class="imp-note" id="cuNote">Pour ce qui n’est pas dans la base : choisis une image, donne-lui un nom, et elle se range comme n’importe quelle carte.</p>
+    <div class="cu-row">
+      <div class="cu-pic" id="cuPic"><span>Pas d’image</span></div>
+      <div class="cu-btns">
+        <button class="ghost sm" id="cuPick" type="button">Image de l’appareil…</button>
+        <button class="ghost sm" id="cuLinkBtn" type="button">Lien d’une image…</button>
+        <input type="file" id="cuFile" accept="image/*" hidden>
+      </div>
+    </div>
+    <div class="fi-link" id="cuLink" hidden><input id="cuUrl" placeholder="https://… adresse d’une image" autocomplete="off"><button class="primary sm" id="cuUrlOk" type="button">Utiliser</button></div>
+    <label class="fld">Nom <input id="cuName" maxlength="80" autocomplete="off" placeholder="Ex. Janemba"></label>
+    <label class="fld" id="cuSubWrap">Série d’origine (facultatif) <input id="cuSub" maxlength="80" autocomplete="off" placeholder="Ex. Dragon Ball Z"></label>
+    <div class="imp-state err" id="cuMsg" hidden></div>
+    <div class="foot">
+      <button class="ghost" id="cuCancel" type="button">Annuler</button>
+      <button class="primary" id="cuOk" type="button">Ajouter</button>
+    </div>
+  </div>
 </dialog>
 
 <dialog id="dlgFiche" class="modal fiche">
@@ -141,19 +165,6 @@
       <button value="cancel" class="ghost only-new">Annuler</button>
     </div>
   </form>
-</dialog>
-
-<dialog id="dlgFill" class="modal">
-  <div class="imp-in">
-    <h2>Remplir mon top</h2>
-    <p class="imp-note">Les places libres de ton top sont remplies avec les cartes de la tier list choisie, en commençant par le tier S, puis A, B… Ce qui est déjà dans ton top ne bouge pas.</p>
-    <div class="imp-dest" id="flSrc"></div>
-    <div id="flState" class="imp-state" hidden></div>
-    <div class="foot">
-      <button class="ghost" id="flClose" type="button">Fermer</button>
-      <button class="primary" id="flGo" type="button">Remplir</button>
-    </div>
-  </div>
 </dialog>
 
 <dialog id="dlgList" class="modal">
