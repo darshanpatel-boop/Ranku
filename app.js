@@ -974,9 +974,12 @@ function setImport(kind, text) {
 }
 
 function renderImportDest() {
+  const opt = (dest, title, desc) => h('button', { class: 'imp-opt' + (IMP.dest === dest ? ' on' : ''), dataset: { dest }, type: 'button' },
+    h('i', { class: 'rd' }), h('span', {}, h('b', {}, title), h('small', {}, desc)));
   $('#impDest').replaceChildren(
-    h('button', { class: 'sw-pill' + (IMP.dest === 'current' ? ' on' : ''), dataset: { dest: 'current' }, type: 'button' }, `Dans « ${cur().name} »`),
-    h('button', { class: 'sw-pill' + (IMP.dest === 'new' ? ' on' : ''), dataset: { dest: 'new' }, type: 'button' }, 'Nouvelle liste'));
+    h('div', { class: 'imp-q' }, 'Où ajouter tes animés ?'),
+    opt('current', `Dans ma liste « ${cur().name} »`, 'Les nouveaux animés arrivent dans « Non classé ». Ce que tu as déjà rangé ne bouge pas.'),
+    opt('new', 'Dans une nouvelle liste', 'Crée une liste séparée « AniList · ton pseudo » et laisse ta liste actuelle intacte.'));
 }
 $('#impDest').addEventListener('click', (e) => {
   const b = e.target.closest('[data-dest]');
