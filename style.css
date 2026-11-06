@@ -440,3 +440,6 @@ button.danger { background: #3a2328; color: #ff9a9a; border: 2px solid var(--lin
 .fi-img button[hidden], .fi-link[hidden] { display: none; }
 .fi-link { display: flex; gap: 8px; padding: 8px 18px 0; }
 .fi-link input { flex: 1; min-width: 0; background: var(--panel2); border: 0; border-radius: 10px; padding: 9px 12px; color: var(--text); }
+
+/* la liste de la fiche épouse son contenu : les boutons remontent juste dessous */
+.fi-list { flex: 0 1 auto; min-height: 0; }
