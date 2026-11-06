@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Améliorations de I</title>
+<link rel="stylesheet" href="base.css"><link rel="stylesheet" href="cork.css">
+<style>
+/* Base = proposition I : sans bloc, tiers collés, lueur à gauche, trait coloré continu, lettre en filigrane */
+.board { position: relative; border-radius: 16px; overflow: hidden; border: 2px solid var(--edge); box-shadow: 0 5px 0 rgba(0,0,0,.4); background: #1c1f27; }
+.board::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 6px; background: var(--bar); z-index: 2; }
+.board .row { border: 0; border-radius: 0; margin: 0; box-shadow: none; overflow: visible; background: radial-gradient(ellipse 60% 120% at 0% 50%, color-mix(in srgb, var(--c1) 36%, transparent), transparent 72%); }
+.board .row::after { content: attr(data-n); position: absolute; right: 10px; bottom: -34px; font: 800 170px/1 'Baloo 2', sans-serif; color: var(--c1); opacity: .09; pointer-events: none; }
+.board .row + .row::before { content: ''; position: absolute; left: 6px; right: 0; top: 0; height: 1px; background: linear-gradient(90deg, rgba(255,255,255,.14), transparent 70%); }
+.row .lab { flex: 0 0 96px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding-left: 6px; }
+.row .lab b { font: 800 58px/1 'Baloo 2', sans-serif; background: linear-gradient(135deg, var(--c1), var(--c2)); -webkit-background-clip: text; background-clip: text; color: transparent; filter: drop-shadow(0 2px 0 rgba(0,0,0,.35)); }
+.row .lab small { display: none; }
+.row .cells { z-index: 1; }
+
+/* 1 — Halo : la lettre rayonne, légende sous la lettre, les lueurs de deux tiers voisins se recouvrent */
+.v1 .row { background: radial-gradient(ellipse 75% 210% at 0% 50%, color-mix(in srgb, var(--c1) 40%, transparent), transparent 75%); }
+.v1 .row .lab { flex-basis: 118px; }
+.v1 .row .lab b { filter: drop-shadow(0 0 14px color-mix(in srgb, var(--c1) 70%, transparent)) drop-shadow(0 2px 0 rgba(0,0,0,.35)); }
+.v1 .row .lab small { display: block; margin-top: 2px; font: 600 11px/1.2 Inter, sans-serif; color: #b9bdd0; text-align: center; }
+
+/* 2 — Liseré : fine ligne colorée entre les tiers, affiches cerclées de la couleur du tier */
+.v2 .board .row + .row::before { height: 2px; background: linear-gradient(90deg, var(--c1), transparent 85%); opacity: .8; }
+.v2 .poster { border-color: color-mix(in srgb, var(--c1) 60%, #0e1016); box-shadow: 0 3px 0 rgba(0,0,0,.45), 0 0 14px color-mix(in srgb, var(--c1) 30%, transparent); }
+
+/* 3 — Aurore : lumière en diagonale très large, trait plus épais, filigrane plus présent, affiches qui se soulèvent */
+.v3 .board::before { width: 10px; }
+.v3 .row { background: linear-gradient(100deg, color-mix(in srgb, var(--c1) 30%, transparent) 0%, color-mix(in srgb, var(--c2) 10%, transparent) 45%, transparent 75%); }
+.v3 .board .row::after { opacity: .14; font-size: 200px; bottom: -48px; }
+.v3 .poster { transition: transform .15s; } .v3 .poster:hover { transform: translateY(-5px) rotate(-1deg); }
+</style></head><body>
+<script src="mock.js"></script><script src="common.js"></script>
+<div class="wrap">
+  <h1>Mes animés préférés</h1><div class="sub">17 animés · 5 tiers</div>
+  <div class="board" id="rows"></div>
+  <div class="cork" id="pool"><div class="note">Non classé</div></div>
+  <span class="btn">+ Ajouter des animés</span>
+</div>
+<script>
+const v = new URLSearchParams(location.search).get('v') || '1';
+document.body.classList.add('v' + v);
+const NAMES = { S: 'Chef-d’œuvre', A: 'Excellent', B: 'Bien', C: 'Moyen', D: 'Bof' };
+const board = document.getElementById('rows');
+board.style.setProperty('--bar', `linear-gradient(180deg, ${TIERS.map((t, i) => `${t.c1} ${Math.round((i + 0.5) / TIERS.length * 100)}%`).join(', ')})`);
+board.innerHTML = rowsHtml((t) => `<div class="row" data-n="${t.n}" style="--c1:${t.c1};--c2:${t.c2}"><div class="lab"><b>${t.n}</b><small>${NAMES[t.n]} · ${t.items.length}</small></div><div class="cells">${t.items.map((i) => poster(i)).join('')}</div></div>`);
+document.getElementById('pool').insertAdjacentHTML('beforeend', POOL.map((i) => `<div class="pol">${poster(i)}</div>`).join(''));
+</script></body></html>
