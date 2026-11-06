@@ -89,9 +89,9 @@ button.ghost { background: var(--panel2); }
   .card .tt { display: block; position: absolute; left: 0; right: 0; bottom: 0; padding: 22px 6px 6px; border-radius: 0 0 9px 9px; font: 600 11px/1.2 'Inter', sans-serif; color: #fff; text-align: left; background: linear-gradient(transparent, rgba(0,0,0,.88)); opacity: 0; transition: opacity .15s; pointer-events: none; }
   .card:hover .tt { opacity: 1; }
 }
-.sortable-ghost { opacity: .3; }
+.sortable-ghost { opacity: 0 !important; } /* pas d'aperçu fantôme de l'emplacement */
 .sortable-chosen { cursor: grabbing; }
-.sortable-fallback { opacity: .96 !important; z-index: 9999 !important; box-shadow: 0 14px 30px rgba(0,0,0,.65) !important; cursor: grabbing; }
+.sortable-fallback { opacity: .97 !important; z-index: 9999 !important; scale: 1.06; rotate: 0deg !important; box-shadow: 0 16px 34px rgba(0,0,0,.65) !important; cursor: grabbing; transition: none !important; }
 
 /* Non classé : tableau en liège, polaroïds épinglés */
 .cork { margin-top: 36px; border-radius: 16px; border: 3px solid #6b4a2b; box-shadow: 0 5px 0 rgba(0,0,0,.4), inset 0 0 40px rgba(60,35,10,.55); position: relative;
@@ -184,21 +184,24 @@ button.sm { padding: 8px 12px; }
 .sr-it.added .sr-pic img { filter: brightness(.78); }
 /* bouton en verre translucide, en bas à gauche de l'affiche */
 .sr-ov { position: absolute; left: 8px; bottom: 8px; }
-.sr-chip { display: flex; align-items: center; gap: 7px; min-height: 32px; padding: 5px 13px 5px 5px; border-radius: 99px; background: rgba(12,16,30,.5); border: 1px solid rgba(255,255,255,.22); backdrop-filter: blur(8px) saturate(1.3); color: #fff; font: 700 12px 'Inter', sans-serif; white-space: nowrap; cursor: pointer; transition: background .15s, border-color .15s, color .15s, transform .12s; }
+.sr-chip { display: flex; align-items: center; gap: 7px; min-height: 32px; padding: 5px 13px 5px 5px; border-radius: 99px; background: rgba(12,16,30,.5); border: 1px solid rgba(255,255,255,.22); backdrop-filter: blur(8px) saturate(1.3); color: #fff; font: 700 12px 'Inter', sans-serif; white-space: nowrap; cursor: pointer; transition: background .25s, border-color .25s, color .25s, transform .12s; }
 .sr-chip:active { transform: scale(.96); }
-.sr-chip .ic { display: flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 50%; background: rgba(255,255,255,.9); color: #1a1d27; font: 800 14px 'Inter', sans-serif; font-style: normal; flex: none; }
-.sr-chip .st { display: flex; align-items: center; gap: 7px; }
-.sr-chip .st2 { display: none; }
-.sr-chip .ck svg { width: 12px; height: 12px; stroke: currentColor; fill: none; stroke-width: 3.2; stroke-linecap: round; stroke-linejoin: round; }
+.sr-chip .ic { position: relative; display: flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 50%; background: rgba(255,255,255,.9); color: #1a1d27; font: 800 14px 'Inter', sans-serif; font-style: normal; flex: none; }
 @media (hover: hover) { .sr-it:not(.added) .sr-chip:hover { background: rgba(28,66,160,.62); border-color: rgba(160,195,255,.7); } }
-/* ajouté : verre vert ; au survol du bouton : verre rouge avec une poubelle */
-.sr-it.added .sr-chip { padding: 5px; background: rgba(8,58,40,.64); border-color: rgba(74,222,159,.6); color: #c9f8e3; }
-.sr-it.added .sr-chip .ic { background: #4ade9f; color: #04281c; }
+
+/* ajouté : un rond vert avec une coche ; au survol il s'étire doucement en « Retirer » (poubelle, verre rouge) */
+.sr-chip.ad { gap: 0; padding: 5px; background: rgba(8,58,40,.64); border-color: rgba(74,222,159,.6); color: #c9f8e3; }
+.sr-chip.ad .ic { background: #4ade9f; color: #04281c; transition: background .25s, color .25s; }
+.sr-chip .ic svg { position: absolute; width: 12px; height: 12px; stroke: currentColor; fill: none; stroke-width: 3.2; stroke-linecap: round; stroke-linejoin: round; transition: opacity .2s, scale .3s cubic-bezier(.3, 1.5, .5, 1), rotate .3s; }
+.sr-chip .i-tr { opacity: 0; scale: .3; rotate: -50deg; stroke-width: 2.4; }
+.sr-chip .lbl { display: block; max-width: 0; opacity: 0; overflow: hidden; transition: max-width .3s cubic-bezier(.3, 1, .4, 1), opacity .2s; }
+.sr-chip .lbl span { display: block; padding: 0 8px 0 7px; white-space: nowrap; }
 @media (hover: hover) {
-  .sr-it.added .sr-chip:not(.just):hover { padding: 5px 13px 5px 5px; background: rgba(120,18,28,.7); border-color: rgba(255,125,125,.65); color: #ffdede; }
-  .sr-it.added .sr-chip:not(.just):hover .st1 { display: none; }
-  .sr-it.added .sr-chip:not(.just):hover .st2 { display: flex; }
-  .sr-it.added .sr-chip:not(.just):hover .ic { background: rgba(255,255,255,.16); color: #ffb4b4; }
+  .sr-chip.ad:not(.just):hover { background: rgba(120,18,28,.7); border-color: rgba(255,125,125,.65); color: #ffdede; }
+  .sr-chip.ad:not(.just):hover .ic { background: rgba(255,255,255,.16); color: #ffb4b4; }
+  .sr-chip.ad:not(.just):hover .i-ck { opacity: 0; scale: .3; rotate: 50deg; }
+  .sr-chip.ad:not(.just):hover .i-tr { opacity: 1; scale: 1; rotate: 0deg; }
+  .sr-chip.ad:not(.just):hover .lbl { max-width: 90px; opacity: 1; }
 }
 .sw-sep { grid-column: 1 / -1; margin-top: 6px; padding-top: 14px; border-top: 1px solid #343c58; color: #9aa4c4; font: 700 13px 'Inter', sans-serif; }
 .sw-hint { grid-column: 1 / -1; text-align: center; color: #9aa4c4; padding: 54px 20px; }
@@ -238,11 +241,10 @@ dialog[open]::backdrop { animation: fadein .24s; }
 
 /* un animé qui vient d'être ajouté apparaît avec un petit rebond */
 .card.pop { animation: cardpop .45s cubic-bezier(.3, 1.4, .5, 1) both; }
-.sortable-chosen { scale: 1.06; }
 
 /* fenêtre d'ajout : message d'accueil, coche qui se dessine, bouton qui rebondit */
 .sw-hint { animation: fadein .35s; }
-.sr-chip.pop .ck svg path { stroke-dasharray: 24; stroke-dashoffset: 24; animation: draw .32s .05s ease-out forwards; }
+.sr-chip.pop .i-ck path { stroke-dasharray: 24; stroke-dashoffset: 24; animation: draw .32s .05s ease-out forwards; }
 .sr-chip.pop { animation: bump .32s; }
 .toast:not([hidden]) { animation: rise .25s; }
 

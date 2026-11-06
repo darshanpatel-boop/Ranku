@@ -116,6 +116,7 @@ function render() {
       group: 'items',
       animation: 160,
       forceFallback: true,       // glisser géré par Sortable lui-même (même comportement partout, souris et doigt)
+      fallbackOnBody: true,      // la copie qui suit le curseur passe au-dessus de tout (barre du haut comprise)
       fallbackTolerance: 3,
       delay: 160,                // au doigt : appui bref avant de saisir, pour pouvoir faire défiler la page
       delayOnTouchOnly: true,
@@ -401,15 +402,14 @@ function hlNodes(title, q) {
   return [title.slice(0, i), h('mark', {}, title.slice(i, i + qq.length)), title.slice(i + qq.length)];
 }
 
-const svgEl = (html) => { const t = document.createElement('template'); t.innerHTML = html.trim(); return t.content.firstChild; };
+const svgEl = (html, cls) => { const t = document.createElement('template'); t.innerHTML = html.trim(); const el = t.content.firstChild; if (cls) el.classList.add(cls); return el; };
 const CHECK = '<svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
 const TRASH = '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></svg>';
 
 function srChip(added) {
-  return h('button', { class: 'sr-chip', type: 'button', 'aria-label': added ? 'Retirer de ma liste' : 'Ajouter à ma liste' },
+  return h('button', { class: 'sr-chip' + (added ? ' ad' : ''), type: 'button', 'aria-label': added ? 'Retirer de ma liste' : 'Ajouter à ma liste' },
     added
-      ? [h('span', { class: 'st st1' }, h('i', { class: 'ic ck' }, svgEl(CHECK))),
-         h('span', { class: 'st st2' }, h('i', { class: 'ic tr' }, svgEl(TRASH)), 'Retirer')]
+      ? [h('i', { class: 'ic' }, svgEl(CHECK, 'i-ck'), svgEl(TRASH, 'i-tr')), h('span', { class: 'lbl' }, h('span', {}, 'Retirer'))]
       : [h('i', { class: 'ic' }, '+'), 'Ajouter']);
 }
 

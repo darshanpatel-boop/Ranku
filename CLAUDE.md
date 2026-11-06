@@ -7,7 +7,7 @@ Site web installable sur téléphone pour faire des tier lists d'animés (et de 
 - PWA installable (manifest + service worker), comme Croc'Savoir.
 - API : AniList GraphQL (https://graphql.anilist.co), lecture publique sans clé. Limite ~90 requêtes/min : délais + cache local, imports découpés.
 - Glisser-déposer tactile : petite bibliothèque testée (type SortableJS) plutôt que du code maison.
-- Sauvegarde locale (localStorage / IndexedDB), sans compte. Export/import JSON pour changer d'appareil.
+- Sauvegarde locale (localStorage), sans compte. L'export/import JSON a été retiré à la demande de l'utilisateur.
 
 ## Source de données (décidé le 2026-11-01, remplace « AniList seul »)
 - Il est INTERDIT d'embarquer des données scrappées d'AniList. On utilise à la place la base **anime-offline-database** (manami-project sur GitHub, ODbL v1.0 + DbCL v1.0, mise à jour hebdo, fichiers dans les Releases du dépôt, version « latest »).
@@ -42,4 +42,12 @@ Site web installable sur téléphone pour faire des tier lists d'animés (et de 
 - Il teste sur son téléphone et fait des retours.
 - Il a déjà fait une appli similaire (Animeboxd, devenue Kibō, Expo) : ses anciennes notes sont dans notes/Animeboxd/. Seul ce qui touche à la tier list compte, surtout notes/Animeboxd/Update.md (journal de dev). À retenir : placement tactile « toucher l'animé puis toucher le tier » (plus fiable que le glisser pur), tiers nommables/ajoutables/supprimables, zone « Non classé » en pointillés, pas de note ni de sources de synopsis, pièges de fusion de licences (Dragon Ball, Attaque des Titans, One Piece), choix de jaquette = vraie série TV la plus ancienne, filtrer OAV/spéciaux/clips, cache AniList (30 j terminé / 6 h en cours), pannes AniList fréquentes.
 - Interface de l'étape 1 : faire au mieux et simple, il la changera plus tard.
-- Prochaine session : commencer l'étape 1 (après le reset hebdo).
+- Dev : serveur local `node scripts/dev-server.mjs` (port 5173) ; captures et tests possibles avec Chrome headless (C:/Program Files/Google/Chrome/Application/chrome.exe --headless=new --screenshot=...). Les pages de test de DA sont dans design/ (hors site).
+- Push : l'utilisateur autorise commit + git push sur Ranku (voir mémoire), de préférence groupés en fin de bloc de travail. Site : https://darshanpatel-boop.github.io/Ranku/
+
+## État du projet (2026-11-06)
+- Étape 1 FAITE : recherche (base locale data/anime.json générée par scripts/build-data.mjs + AniList en complément), tier list, glisser-déposer (SortableJS en forceFallback, SANS placement par sélection), plusieurs listes en onglets, PWA (service worker réseau d'abord), animations de base.
+- DA décidée : fond ardoise, accent BLEU (#4f8cff) partout, logo Ran (corail) + ku (bleu), tiers collés avec lettre qui rayonne et légende, « Non classé » = tableau en liège avec polaroïds, boutons en verre translucide. Flèches ▲▼ sur chaque tier, bouton de recherche au-dessus du liège, fenêtre d'ajout (grille d'affiches, puce Ajouter, coche puis Retirer + poubelle au survol, option masquer les ajoutés, filtres, raccourci « / »).
+- Retirer un animé de la liste : seulement via la coche dans la fenêtre d'ajout (idée en attente : zone poubelle où glisser).
+- Pas encore fait : étape 2 (fusion des licences via relatedAnime + import AniList par pseudo), étape 3 (personnages), étape 4 (import MAL + export image).
+- Pièges rencontrés : ne pas dépendre de l'événement « close » des <dialog> pour valider (on utilise « submit ») ; éviter les classes génériques (.dot) qui entrent en conflit entre fichiers de style ; toujours vérifier le rendu par capture (Chrome headless) plutôt que supposer.
