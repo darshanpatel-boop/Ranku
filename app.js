@@ -247,9 +247,22 @@ $('#tierDel').onclick = () => {
 };
 
 // ---------- Plusieurs tier lists : onglets en haut, plus de menu caché ----------
+// Le fond bleu de l'onglet actif est un élément à part qui reste en place : quand l'onglet change, il glisse.
+const tabPill = h('span', { class: 'tab-pill' });
+function placePill(animate = true) {
+  const on = $('#listTabs .chip.on');
+  if (!on) { tabPill.style.opacity = 0; return; }
+  tabPill.classList.toggle('ready', animate && tabPill.dataset.placed === '1');
+  Object.assign(tabPill.style, { left: on.offsetLeft + 'px', top: on.offsetTop + 'px', width: on.offsetWidth + 'px', height: on.offsetHeight + 'px', opacity: 1 });
+  tabPill.dataset.placed = '1';
+}
+window.addEventListener('resize', () => placePill(false));
+document.fonts?.ready.then(() => placePill(false));
+
 function renderTabs() {
   const box = $('#listTabs');
   box.replaceChildren(
+    tabPill,
     ...db.lists.flatMap((l) => {
       const on = l.id === db.cur;
       const out = [h('button', { class: 'chip' + (on ? ' on' : ''), dataset: { list: l.id }, type: 'button' }, l.name)];
@@ -258,6 +271,7 @@ function renderTabs() {
     }),
     h('button', { class: 'chip add', dataset: { newlist: '1' }, type: 'button' }, '＋ Nouvelle liste'));
   $('.chip.on', box)?.scrollIntoView({ inline: 'nearest', block: 'nearest' });
+  placePill();
 }
 
 let editList = null; // id de la liste modifiée, null = création
@@ -295,7 +309,7 @@ $('#listDel').onclick = () => {
 };
 $('#listTabs').addEventListener('click', (e) => {
   const chip = e.target.closest('[data-list]');
-  if (chip) { db.cur = chip.dataset.list; save(); render(); return; }
+  if (chip) { db.cur = chip.dataset.list; save(); render(); $('#board').animate([{ opacity: 0, transform: 'translateY(8px)' }, { opacity: 1, transform: 'none' }], { duration: 260, easing: 'ease-out' }); return; }
   if (e.target.closest('[data-editlist]')) openList(cur().id);
   else if (e.target.closest('[data-newlist]')) openList(null);
 });

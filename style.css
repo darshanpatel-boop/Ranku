@@ -305,3 +305,12 @@ button.danger { background: #3a2328; color: #ff9a9a; border: 2px solid var(--lin
 .brand span, .brand b { -webkit-text-stroke: 4px var(--line); paint-order: stroke fill; text-shadow: 0 3px 0 var(--line); }
 .list-tabs { gap: 8px; }
 .chip { font-size: 15px; padding: 8px 16px; }
+
+/* ===== Onglet actif : même forme que sur Croc'Savoir (bord sombre, relief épais, reflet), fond qui coulisse ===== */
+.list-tabs { position: relative; padding: 2px 4px 8px; margin: 0 -4px -6px; }
+.tab-pill { position: absolute; z-index: 0; left: 0; top: 0; width: 0; height: 0; opacity: 0; pointer-events: none; border-radius: 12px; background: var(--accent); border: 2px solid var(--line); box-shadow: 0 4px 0 var(--line), inset 0 2px 0 rgba(255,255,255,.22); }
+.tab-pill.ready { transition: left .34s cubic-bezier(.3, 1.25, .4, 1), width .34s cubic-bezier(.3, 1.25, .4, 1), top .2s, height .2s; }
+.list-tabs .chip { position: relative; z-index: 1; border-radius: 12px; border: 2px solid transparent; transition: color .2s, background .2s; }
+.list-tabs .chip.on { background: transparent; box-shadow: none; border-color: transparent; color: #fff; text-shadow: 0 1px 0 rgba(0,0,0,.25); }
+.list-tabs .chip.on:active { translate: none; box-shadow: none; }
+.list-tabs .chip.add { border: 2px dashed #4a5068; }
