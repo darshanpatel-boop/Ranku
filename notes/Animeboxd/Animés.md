@@ -1,0 +1,4 @@
+
+- Mettre toutes les saisons et peut-être tout les animés d'une même licence ensemble mais au minimum les saisons et faire une section complètement à part pour les films et préciser dans les tier list ceux qui sont des films et ajouter seulements les animés qui sont des films dans la tier list donc des ghibli ou a silent voice par exemple et éviter les dbs broly ou film demon slayer et les intégrer directement dans leur licence respectifs pour ne pas qu'ils apparaissent dans la tier list 
+- Quand on appuie sur un animé ya toute la description de base (Synopsis, date de sortie, tout sa voir les fiches des animés sur les autres sites pour s'inspirer)
+- Système de note soit par étoiles comme letterboxd soit par note sur 10

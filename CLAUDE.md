@@ -9,6 +9,20 @@ Site web installable sur téléphone pour faire des tier lists d'animés (et de 
 - Glisser-déposer tactile : petite bibliothèque testée (type SortableJS) plutôt que du code maison.
 - Sauvegarde locale (localStorage / IndexedDB), sans compte. Export/import JSON pour changer d'appareil.
 
+## Source de données (décidé le 2026-11-01, remplace « AniList seul »)
+- Il est INTERDIT d'embarquer des données scrappées d'AniList. On utilise à la place la base **anime-offline-database** (manami-project sur GitHub, ODbL v1.0 + DbCL v1.0, mise à jour hebdo, fichiers dans les Releases du dépôt, version « latest »).
+- Contenu : titre, synonymes, type, épisodes, statut, saison/année, affiche/miniature, studios, tags, score, `sources` (URL AniList/MAL…) et `relatedAnime` (URL, pas des identifiants : extraire l'id depuis l'URL). Pas de personnages.
+- Rôle de chaque source : la base = recherche (titres + synonymes) et regroupement par licence via `relatedAnime`. L'API AniList = complément pour les animés absents de la base (sorties récentes), les personnages, l'import par pseudo.
+- Obligations ODbL : mention visible de la source (page À propos), base dérivée publiée sous ODbL. À FAIRE : lire le fichier LICENSE du dépôt avant de coder.
+- Relations de la base potentiellement fautives (ex. One Piece fusionné avec Dragon Ball dans l'ancienne appli) : prévoir un petit fichier de coupures manuelles séparé.
+- Les affiches restent hébergées chez les sources (liens) : à tester pour l'export image (CORS).
+
+## Règles pour économiser la limite de session
+- NE JAMAIS lire en entier (Read/cat) le gros JSON de la base ni les fichiers de données générés. Le traiter par script (téléchargement, réduction, découpage en petits fichiers) et n'afficher que quelques entrées en exemple + des chiffres.
+- Fichier brut téléchargé hors de git (.gitignore), régénérable par le script.
+- Pas de modification à la main des données ; corrections manuelles dans un petit fichier à part.
+- Une session par étape ou par petite fonctionnalité ; l'utilisateur groupe ses retours.
+
 ## Cahier des charges
 1. Recherche d'un animé par titre, images fournies par l'API (plus d'import d'images, plus de « pas vu »).
 2. Import de la liste AniList par pseudo (filtre « terminé »). Import MyAnimeList : export XML déposé sur le site, retrouvé côté AniList via idMal (Jikan par pseudo en option, moins stable).
@@ -26,4 +40,6 @@ Site web installable sur téléphone pour faire des tier lists d'animés (et de 
 ## Préférences de l'utilisateur
 - Francophone, répondre en français, messages courts.
 - Il teste sur son téléphone et fait des retours.
-- Il a déjà fait une appli similaire avec l'API AniList : ses anciennes notes iront dans notes/ (voir notes/).
+- Il a déjà fait une appli similaire (Animeboxd, devenue Kibō, Expo) : ses anciennes notes sont dans notes/Animeboxd/. Seul ce qui touche à la tier list compte, surtout notes/Animeboxd/Update.md (journal de dev). À retenir : placement tactile « toucher l'animé puis toucher le tier » (plus fiable que le glisser pur), tiers nommables/ajoutables/supprimables, zone « Non classé » en pointillés, pas de note ni de sources de synopsis, pièges de fusion de licences (Dragon Ball, Attaque des Titans, One Piece), choix de jaquette = vraie série TV la plus ancienne, filtrer OAV/spéciaux/clips, cache AniList (30 j terminé / 6 h en cours), pannes AniList fréquentes.
+- Interface de l'étape 1 : faire au mieux et simple, il la changera plus tard.
+- Prochaine session : commencer l'étape 1 (après le reset hebdo).

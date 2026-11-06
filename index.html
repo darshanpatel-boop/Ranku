@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#16162a">
+<title>Tier list animés</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top">
+  <select id="listSelect" aria-label="Tier list"></select>
+  <button id="btnMenu" class="icon-btn" aria-label="Menu">⋯</button>
+</header>
+
+<main id="board"></main>
+
+<div class="actions">
+  <button id="btnAddTier" class="ghost">+ Ajouter un tier</button>
+</div>
+
+<button id="btnSearch" class="fab">+ Ajouter des animés</button>
+
+<div id="placeBar" class="place-bar" hidden></div>
+
+<dialog id="dlgSearch" class="sheet">
+  <form method="dialog" class="sheet-head">
+    <input id="q" type="search" placeholder="Titre d'un animé…" autocomplete="off" enterkeyhint="search">
+    <button class="icon-btn" aria-label="Fermer">✕</button>
+  </form>
+  <div id="results" class="results"></div>
+</dialog>
+
+<dialog id="dlgTier" class="modal">
+  <form method="dialog" id="formTier">
+    <h2>Modifier le tier</h2>
+    <label>Nom <input id="tierName" maxlength="20"></label>
+    <label>Couleur <input id="tierColor" type="color"></label>
+    <div class="row">
+      <button type="button" id="tierUp" class="ghost">↑ Monter</button>
+      <button type="button" id="tierDown" class="ghost">↓ Descendre</button>
+    </div>
+    <div class="row">
+      <button type="button" id="tierDel" class="danger">Supprimer</button>
+      <button value="ok" class="primary">OK</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlgMenu" class="modal">
+  <form method="dialog">
+    <h2>Tier lists</h2>
+    <button type="button" data-act="new" class="ghost">Nouvelle tier list</button>
+    <button type="button" data-act="rename" class="ghost">Renommer</button>
+    <button type="button" data-act="delete" class="danger">Supprimer celle-ci</button>
+    <button type="button" data-act="export" class="ghost">Exporter (fichier JSON)</button>
+    <button type="button" data-act="import" class="ghost">Importer (fichier JSON)</button>
+    <button type="button" data-act="about" class="ghost">À propos</button>
+    <button value="close" class="primary">Fermer</button>
+  </form>
+</dialog>
+
+<dialog id="dlgAbout" class="modal">
+  <form method="dialog">
+    <h2>À propos</h2>
+    <p>Données des animés : <a href="https://github.com/manami-project/anime-offline-database" target="_blank" rel="noopener">anime-offline-database</a> (manami-project), licence <a href="https://opendatacommons.org/licenses/odbl/1.0/" target="_blank" rel="noopener">ODbL 1.0</a>. Complété par l'API <a href="https://anilist.co" target="_blank" rel="noopener">AniList</a> pour les sorties récentes. Les affiches appartiennent à leurs ayants droit.</p>
+    <p id="aboutDate"></p>
+    <button value="close" class="primary">Fermer</button>
+  </form>
+</dialog>
+
+<input id="fileImport" type="file" accept="application/json,.json" hidden>
+<div id="toast" class="toast" hidden></div>
+
+<script src="vendor/Sortable.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
