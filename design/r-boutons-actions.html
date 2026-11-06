@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Boutons d'action</title>
+<link rel="stylesheet" href="base.css">
+<style>
+body { overflow: auto; }
+.wrap { max-width: 1000px; margin: 0 auto; padding: 24px 16px 60px; }
+h1 { margin: 0 0 4px; } .sub { color: #9aa0b4; margin-bottom: 26px; }
+.set { margin: 0 0 30px; padding: 18px 18px 18px; border-radius: 18px; background: #2a2e3b; border: 2px solid #0f1117; box-shadow: 0 4px 0 #0f1117; }
+.set h2 { margin: 0; font: 800 22px 'Baloo 2', sans-serif; }
+.set > p { margin: 2px 0 14px; color: #9aa0b4; font-size: 13px; }
+.cap { margin: 14px 0 8px; color: #707a9c; font: 700 11px Inter; text-transform: uppercase; letter-spacing: .08em; }
+.screen { border-radius: 14px; background: #23262f; border: 2px solid #12141b; padding: 16px; }
+.tiers-end { height: 44px; border-radius: 12px; background: linear-gradient(90deg, rgba(110,160,255,.28), #1c1f27 60%); border: 2px solid #12141b; margin-bottom: 18px; }
+.cork { height: 46px; margin-top: 22px; border-radius: 14px; border: 3px solid #6b4a2b; background: #b98a55 radial-gradient(rgba(90,55,20,.35) 1.2px, transparent 1.4px) 0 0 / 9px 9px; }
+.foot { display: flex; align-items: center; gap: 14px; padding: 14px 18px; border-radius: 14px; background: #1d212d; border: 2px solid #12141b; }
+.foot .lk { margin-right: auto; color: #7fb0ff; font-size: 13px; text-decoration: underline; }
+.foot .cnt { color: #c9cde0; font-size: 14px; }
+button { font-family: Inter, sans-serif; cursor: pointer; color: #fff; border: 0; }
+svg.i { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+svg.s { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; flex: none; }
+
+/* 1 — Touche géante */
+.v1 .home { display: flex; align-items: center; justify-content: center; gap: 12px; width: 100%; height: 62px; border-radius: 16px; background: #4f8cff; border: 2px solid #0f1117; box-shadow: 0 5px 0 #0f1117, inset 0 2px 0 rgba(255,255,255,.28); font: 800 19px 'Baloo 2', sans-serif; transition: translate .1s, box-shadow .1s, filter .15s; }
+.v1 .home .pl { width: 34px; height: 34px; border-radius: 50%; background: #fff; color: #4f8cff; display: flex; align-items: center; justify-content: center; }
+.v1 .home:hover { filter: brightness(1.08); } .v1 .home:active { translate: 0 3px; box-shadow: 0 2px 0 #0f1117, inset 0 2px 0 rgba(255,255,255,.28); }
+.v1 .done { display: flex; align-items: center; gap: 8px; padding: 12px 24px; border-radius: 14px; background: #4f8cff; border: 2px solid #0f1117; box-shadow: 0 4px 0 #0f1117, inset 0 2px 0 rgba(255,255,255,.28); font: 800 15px Inter; }
+.v1 .done:active { translate: 0 2px; box-shadow: 0 2px 0 #0f1117; }
+
+/* 2 — Emplacement pointillé */
+.v2 .home { display: flex; align-items: center; justify-content: center; gap: 14px; width: 100%; height: 76px; border-radius: 16px; background: rgba(255,255,255,.03); border: 3px dashed #5a6590; color: #aab6e8; font: 800 17px 'Baloo 2', sans-serif; transition: all .15s; }
+.v2 .home .pl { width: 38px; height: 38px; border-radius: 50%; background: #3a4264; display: flex; align-items: center; justify-content: center; transition: all .15s; }
+.v2 .home:hover { border-color: #4f8cff; background: rgba(79,140,255,.1); color: #fff; } .v2 .home:hover .pl { background: #4f8cff; rotate: 90deg; }
+.v2 .done { display: flex; align-items: center; gap: 8px; padding: 12px 22px; border-radius: 14px; background: #343949; border: 2px solid #0f1117; box-shadow: 0 4px 0 #0f1117; font: 800 15px Inter; color: #e9ecf8; }
+.v2 .done:hover { background: #3d4358; } .v2 .done:active { translate: 0 2px; box-shadow: 0 2px 0 #0f1117; }
+
+/* 3 — Champ de recherche pur + rond de validation */
+.v3 .home { display: flex; align-items: center; gap: 14px; width: 100%; height: 64px; padding: 0 18px; border-radius: 18px; background: #1f2330; border: 2px solid #0f1117; box-shadow: 0 4px 0 #0f1117; color: #8f98b8; font: 600 17px Inter, sans-serif; text-align: left; transition: border-color .15s, box-shadow .15s; }
+.v3 .home svg { stroke: #4f8cff; width: 24px; height: 24px; } .v3 .home span { flex: 1; }
+.v3 .home kbd { border: 1px solid #0f1117; background: #14171e; border-radius: 6px; padding: 2px 8px; font: 600 12px Inter; }
+.v3 .home:hover { border-color: #4f8cff; box-shadow: 0 4px 0 #0f1117, 0 0 0 5px rgba(79,140,255,.2); color: #cfd8ff; }
+.v3 .done { width: 54px; height: 54px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: #4f8cff; border: 2px solid #0f1117; box-shadow: 0 4px 0 #0f1117, inset 0 2px 0 rgba(255,255,255,.28); }
+.v3 .done svg { width: 26px; height: 26px; } .v3 .done .tx { display: none; }
+.v3 .done:hover { scale: 1.07; } .v3 .done:active { translate: 0 2px; box-shadow: 0 2px 0 #0f1117; }
+
+/* 4 — Autocollant penché jaune */
+.v4 .home { display: block; margin: 6px auto; padding: 16px 34px; border-radius: 14px; background: linear-gradient(180deg, #ffe27a, #ffd24d 55%, #f7b32b); color: #2a1a00; border: 2px solid #11131a; box-shadow: 0 5px 0 #11131a, inset 0 2px 0 rgba(255,255,255,.55), inset 0 -4px 0 rgba(214,124,0,.55); font: 800 18px 'Baloo 2', sans-serif; letter-spacing: .04em; text-transform: uppercase; rotate: -2deg; transition: rotate .15s, scale .15s; }
+.v4 .home:hover { rotate: 0deg; scale: 1.04; } .v4 .home:active { translate: 0 3px; box-shadow: 0 2px 0 #11131a, inset 0 2px 0 rgba(255,255,255,.55); }
+.v4 .done { padding: 11px 24px; border-radius: 12px; background: linear-gradient(180deg, #ffe27a, #ffd24d 55%, #f7b32b); color: #2a1a00; border: 2px solid #11131a; box-shadow: 0 4px 0 #11131a, inset 0 2px 0 rgba(255,255,255,.55), inset 0 -3px 0 rgba(214,124,0,.55); font: 800 14px Inter; letter-spacing: .05em; text-transform: uppercase; rotate: -2deg; }
+.v4 .done:hover { rotate: 0deg; } .v4 .done svg { display: none; }
+
+/* 5 — Carte dégradée avec filigrane */
+.v5 .home { position: relative; overflow: hidden; display: block; width: 100%; padding: 16px 20px; border-radius: 18px; text-align: left; background: linear-gradient(135deg, #4f8cff, #8b5cf6); border: 2px solid #0f1117; box-shadow: 0 5px 0 #0f1117, inset 0 2px 0 rgba(255,255,255,.28); transition: translate .1s, box-shadow .1s, filter .15s; }
+.v5 .home b { display: block; font: 800 22px 'Baloo 2', sans-serif; } .v5 .home small { display: block; opacity: .8; font-size: 13px; }
+.v5 .home::after { content: '＋'; position: absolute; right: 14px; bottom: -34px; font: 800 120px/1 'Baloo 2', sans-serif; opacity: .2; }
+.v5 .home:hover { filter: brightness(1.08); } .v5 .home:active { translate: 0 3px; box-shadow: 0 2px 0 #0f1117; }
+.v5 .done { display: flex; align-items: center; gap: 8px; padding: 12px 24px; border-radius: 14px; background: linear-gradient(135deg, #4f8cff, #8b5cf6); border: 2px solid #0f1117; box-shadow: 0 4px 0 #0f1117, inset 0 2px 0 rgba(255,255,255,.28); font: 800 15px Inter; }
+.v5 .done:active { translate: 0 2px; box-shadow: 0 2px 0 #0f1117; }
+</style></head><body>
+<div class="wrap">
+  <h1>Gros boutons d'action</h1>
+  <div class="sub">Cinq styles pour le bouton « Ajouter des animés » de l'écran d'accueil et pour le bouton « Terminé » de la fenêtre d'ajout. Ils sont cliquables : survole-les et appuie dessus.</div>
+  <div id="sets"></div>
+</div>
+<script>
+const I = {
+  plus: '<svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>',
+  check: '<svg class="i" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
+  loupe: '<svg class="s" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>',
+};
+const homes = {
+  v1: `<button class="home"><span class="pl">${I.plus}</span>Ajouter des animés</button>`,
+  v2: `<button class="home"><span class="pl">${I.plus}</span>Ajouter un animé</button>`,
+  v3: `<button class="home">${I.loupe}<span>Rechercher un animé à ajouter…</span><kbd>/</kbd></button>`,
+  v4: `<button class="home">＋ Ajouter des animés</button>`,
+  v5: `<button class="home"><b>Ajouter des animés</b><small>Cherche par titre, en français ou en japonais</small></button>`,
+};
+const SETS = [
+  ['v1', '1 · Touche géante', 'Gros bouton bleu plein, avec une pastille « + » blanche. Même style que les touches du site, en plus grand.'],
+  ['v2', '2 · Emplacement pointillé', 'Comme une case vide qu’on remplit : cadre en pointillés, qui se colore au survol. « Terminé » est une touche grise sobre.'],
+  ['v3', '3 · Champ de recherche pur', 'Un vrai faux champ de recherche sans bouton dedans. « Terminé » devient un rond bleu avec une coche.'],
+  ['v4', '4 · Autocollant jaune penché', 'Comme l’onglet actif de ton autre site : jaune, penché, majuscules. Le « Terminé » est assorti.'],
+  ['v5', '5 · Carte dégradée', 'Une carte bleu-violet avec un « + » géant en filigrane et une phrase d’aide, façon cartes de Croc’Savoir.'],
+];
+document.getElementById('sets').innerHTML = SETS.map(([c, t, p]) => `
+  <section class="set ${c}"><h2>${t}</h2><p>${p}</p>
+  <div class="cap">Écran d'accueil</div>
+  <div class="screen"><div class="tiers-end"></div>${homes[c]}<div class="cork"></div></div>
+  <div class="cap">Fenêtre d'ajout · pied de page</div>
+  <div class="foot"><span class="lk">Pas trouvé ? Chercher aussi sur AniList</span><span class="cnt">3 ajoutés</span><button class="done">${I.check}<span class="tx">Terminé</span></button></div>
+  </section>`).join('');
+</script></body></html>
