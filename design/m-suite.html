@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Suite sur la base L1</title>
+<link rel="stylesheet" href="base.css"><link rel="stylesheet" href="cork.css">
+<style>
+/* Base = L1 : sans bloc, tiers collés, lueur à gauche qui se recouvre, lettre qui rayonne, nom du tier sous la lettre, pas de filigrane */
+.board { position: relative; border-radius: 16px; overflow: hidden; border: 2px solid var(--edge); box-shadow: 0 5px 0 rgba(0,0,0,.4); background: #1c1f27; }
+.board::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 6px; background: var(--bar); z-index: 2; }
+.board .row { border: 0; border-radius: 0; margin: 0; box-shadow: none; overflow: visible; background: radial-gradient(ellipse 75% 210% at 0% 50%, color-mix(in srgb, var(--c1) 40%, transparent), transparent 75%); }
+.board .row + .row::before { content: ''; position: absolute; left: 6px; right: 0; top: 0; height: 1px; background: linear-gradient(90deg, rgba(255,255,255,.14), transparent 70%); }
+.row .lab { flex: 0 0 118px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding-left: 6px; }
+.row .lab b { font: 800 58px/1 'Baloo 2', sans-serif; background: linear-gradient(135deg, var(--c1), var(--c2)); -webkit-background-clip: text; background-clip: text; color: transparent; filter: drop-shadow(0 0 14px color-mix(in srgb, var(--c1) 70%, transparent)) drop-shadow(0 2px 0 rgba(0,0,0,.35)); }
+.row .lab small { margin-top: 2px; font: 600 11px/1.2 Inter, sans-serif; color: #b9bdd0; text-align: center; }
+.row .cells { z-index: 1; align-items: center; }
+
+/* 1 — Répartition : barre en tête de page qui montre où en est le classement */
+.stats { display: none; margin: 0 0 16px; }
+.v1 .stats { display: block; }
+.stats .top { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+.stats .bar { display: flex; height: 12px; border-radius: 99px; overflow: hidden; background: #1c1f27; border: 2px solid var(--edge); }
+.stats .bar i { display: block; background: linear-gradient(90deg, var(--c1), var(--c2)); }
+.stats .bar i.rest { background: transparent; flex: 1; }
+.stats .leg { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 8px; font-size: 12px; color: #c9cde0; }
+.stats .leg span::before { content: ''; display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; background: var(--c1); }
+
+/* 2 — Emplacements : tier vide avec zone pointillée, case « + » au bout de chaque ligne, bouton d'ajout épinglé dans le liège */
+.slot { display: none; }
+.v2 .slot { display: flex; align-items: center; justify-content: center; width: 86px; height: 122px; border-radius: 8px; border: 2px dashed color-mix(in srgb, var(--c1) 55%, transparent); color: color-mix(in srgb, var(--c1) 80%, #fff); font-size: 26px; opacity: .55; }
+.v2 .empty-hint { display: flex; align-items: center; gap: 10px; height: 122px; padding: 0 18px; border-radius: 10px; border: 2px dashed color-mix(in srgb, var(--c1) 45%, transparent); color: color-mix(in srgb, var(--c1) 75%, #fff); font-size: 14px; flex: 1; }
+.pol.add { display: none; }
+.v2 .pol.add { display: block; }
+.pol.add .plus { width: 86px; height: 122px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; border: 2px dashed #9a7440; border-radius: 2px; color: #7a5826; font: 700 13px Inter, sans-serif; }
+.pol.add .plus b { font-size: 34px; line-height: 1; }
+.v2 .addbtn { display: none; }
+
+/* 3 — Affiches : coins plus ronds, titre qui apparaît au survol, animé sélectionné bien visible */
+.pw { position: relative; }
+.v3 .poster { border-radius: 11px; transition: transform .15s; }
+.v3 .pw:hover .poster { transform: translateY(-4px); }
+.pw .tt { display: none; }
+.v3 .pw .tt { display: block; position: absolute; left: 2px; right: 2px; bottom: 2px; padding: 22px 6px 6px; border-radius: 0 0 9px 9px; font: 600 11px/1.2 Inter, sans-serif; color: #fff; background: linear-gradient(transparent, rgba(0,0,0,.88)); opacity: 0; transition: opacity .15s; pointer-events: none; }
+.v3 .pw:hover .tt { opacity: 1; }
+.v3 .pw.sel .poster { outline: 3px solid #fff; outline-offset: 1px; box-shadow: 0 0 0 5px var(--brand, #8b5cf6), 0 8px 18px rgba(0,0,0,.6); transform: translateY(-4px) scale(1.05); }
+.v3 .pw.sel::after { content: '✓'; position: absolute; top: -8px; right: -8px; width: 24px; height: 24px; border-radius: 50%; background: #8b5cf6; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 800; box-shadow: 0 2px 6px rgba(0,0,0,.5); }
+</style></head><body>
+<script src="mock.js"></script><script src="common.js"></script>
+<div class="wrap">
+  <h1>Mes animés préférés</h1><div class="sub" id="sub"></div>
+  <div class="stats" id="stats"></div>
+  <div class="board" id="rows"></div>
+  <div class="cork" id="pool"><div class="note">Non classé</div></div>
+  <span class="btn addbtn">+ Ajouter des animés</span>
+</div>
+<script>
+const v = new URLSearchParams(location.search).get('v') || '1';
+document.body.classList.add('v' + v);
+const NAMES = { S: 'Chef-d’œuvre', A: 'Excellent', B: 'Bien', C: 'Moyen', D: 'Bof', E: 'Nul' };
+const tiers = TIERS.map((t) => ({ ...t }));
+if (v === '2') tiers.push({ n: 'E', c1: '#b794f6', c2: '#8b5cf6', ink: '#fff', items: [] }); // tier vide pour montrer l'emplacement
+const total = tiers.reduce((s, t) => s + t.items.length, 0) + POOL.length;
+const done = total - POOL.length;
+document.getElementById('sub').textContent = `${total} animés · ${tiers.length} tiers`;
+
+const tile = (i, sel) => `<div class="pw${sel ? ' sel' : ''}">${poster(i)}<span class="tt">${MOCK[i].t}</span></div>`;
+
+const board = document.getElementById('rows');
+board.style.setProperty('--bar', `linear-gradient(180deg, ${tiers.map((t, i) => `${t.c1} ${Math.round((i + 0.5) / tiers.length * 100)}%`).join(', ')})`);
+board.innerHTML = tiers.map((t) => {
+  const cells = t.items.length
+    ? t.items.map((i) => tile(i, v === '3' && i === 4)).join('') + '<div class="slot">+</div>'
+    : '<div class="empty-hint">Touche un animé puis ce tier, ou glisse-le ici</div>';
+  return `<div class="row" style="--c1:${t.c1};--c2:${t.c2}"><div class="lab"><b>${t.n}</b><small>${NAMES[t.n]}</small></div><div class="cells">${cells}</div></div>`;
+}).join('');
+
+document.getElementById('stats').innerHTML = `
+  <div class="top"><span>${done} classés sur ${total}</span><span>${Math.round(done / total * 100)} %</span></div>
+  <div class="bar">${tiers.filter((t) => t.items.length).map((t) => `<i style="--c1:${t.c1};--c2:${t.c2};width:${t.items.length / total * 100}%"></i>`).join('')}<i class="rest"></i></div>
+  <div class="leg">${tiers.map((t) => `<span style="--c1:${t.c1}">${t.n} · ${t.items.length}</span>`).join('')}</div>`;
+
+document.getElementById('pool').insertAdjacentHTML('beforeend',
+  POOL.map((i) => `<div class="pol">${poster(i)}</div>`).join('') +
+  '<div class="pol add"><div class="plus"><b>+</b>Ajouter</div></div>');
+</script></body></html>
