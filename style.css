@@ -367,3 +367,21 @@ button.danger { background: #3a2328; color: #ff9a9a; border: 2px solid var(--lin
 .fi-m .t { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .fi-m em { font-style: normal; color: #8f98b8; flex: none; }
 .fi-m.off { opacity: .45; }
+
+/* ===== Partager ===== */
+.board-tools { display: flex; justify-content: flex-end; margin: 0 0 12px; }
+.share-btn { display: inline-flex; align-items: center; gap: 8px; padding: 9px 16px; border-radius: 12px; background: var(--panel2); color: var(--text); border: 2px solid var(--line); box-shadow: 0 3px 0 var(--line); font: 700 14px 'Inter', sans-serif; }
+.share-btn svg { width: 17px; height: 17px; stroke: currentColor; fill: none; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+.share-btn:hover { background: #454b62; }
+.share-btn:active { translate: 0 2px; scale: 1; box-shadow: 0 1px 0 var(--line); }
+.share { width: min(94vw, 720px); max-height: 94vh; }
+.share[open] { display: flex; flex-direction: column; }
+.sh-head { display: flex; align-items: center; justify-content: space-between; padding: 16px 18px 6px; }
+.sh-head h2 { margin: 0; font: 700 22px 'Baloo 2', sans-serif; }
+.sh-prev { flex: 1; min-height: 120px; margin: 8px 18px; padding: 10px; border-radius: 14px; background: #1c1f27; border: 2px solid var(--line); overflow: auto; display: flex; align-items: flex-start; justify-content: center; }
+.sh-prev img { width: 100%; height: auto; border-radius: 8px; display: block; }
+#shState { align-self: center; color: #9aa0b4; }
+.sh-opt { padding: 4px 18px; }
+.sh-act { display: flex; flex-wrap: wrap; gap: 10px; padding: 12px 18px 18px; justify-content: flex-end; }
+.sh-act button { flex: 1 1 auto; }
+.sh-act button:disabled { opacity: .5; cursor: default; }
