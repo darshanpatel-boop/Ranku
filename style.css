@@ -385,3 +385,12 @@ button.danger { background: #3a2328; color: #ff9a9a; border: 2px solid var(--lin
 .sh-act { display: flex; flex-wrap: wrap; gap: 10px; padding: 12px 18px 18px; justify-content: flex-end; }
 .sh-act button { flex: 1 1 auto; }
 .sh-act button:disabled { opacity: .5; cursor: default; }
+
+/* ===== Design sobre (variante « bloc continu ») : fond plat, trait de couleur en dégradé continu, lettre colorée à plat ===== */
+.tiers::before { width: 12px; }
+.tier { background: none; }
+.tier + .tier::before { left: 0; right: 0; top: 0; height: 2px; background: var(--line); }
+.tier-label { padding-left: 18px; }
+.tier-label b { background: none; color: var(--c1); filter: none; text-shadow: 0 2px 0 rgba(0,0,0,.3); }
+.tier-label small { color: #8f98b8; }
+.tier-preview { background-image: none; }

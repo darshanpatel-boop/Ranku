@@ -131,6 +131,7 @@ function render() {
       onEnd: () => { lastDrag = Date.now(); syncFromDom(); },
     }));
   });
+  updateBar();
 }
 
 // Relit l'ordre depuis le DOM après un glisser-déposer (le DOM est déjà à jour : pas de reconstruction).
@@ -142,6 +143,7 @@ function syncFromDom() {
     else list.tiers.find((t) => t.id === z.dataset.zone).items = keys;
   }
   save();
+  updateBar();
 }
 
 function detach(list, key) {
@@ -774,12 +776,12 @@ const hexA = (hex, a) => { const n = parseInt(hex.slice(1), 16); return `rgba(${
 // Même rendu que la page : un bloc arrondi, trait coloré continu à gauche, lueur de chaque tier, lettre qui rayonne, légende dessous.
 async function buildShareImage(list) {
   try { await Promise.all([document.fonts.load('800 60px "Baloo 2"'), document.fonts.load('600 14px Inter')]); } catch { /* polices système */ }
-  const W = 1200, PAD = 24, LABEL = 170, PW = 100, PH = 142, GAP = 8, ROWPAD = 10, BAR = 6;
+  const W = 1200, PAD = 24, LABEL = 170, PW = 100, PH = 142, GAP = 8, ROWPAD = 10, BAR = 12;
   const perRow = Math.floor((W - PAD * 2 - LABEL - 12) / (PW + GAP));
   const sections = list.tiers.map((t) => ({ tier: t, keys: t.items.filter((k) => list.items[k]) }));
   const rowH = (n) => Math.max(1, Math.ceil(n / perRow)) * (PH + GAP) - GAP + ROWPAD * 2;
   const heights = sections.map((x) => rowH(x.keys.length));
-  const boxH = heights.reduce((s, h) => s + h, 0) + (sections.length - 1);
+  const boxH = heights.reduce((s, h) => s + h, 0) + (sections.length - 1) * 2;
   const H = PAD * 2 + boxH + 5;
 
   const urls = new Map();
@@ -798,30 +800,19 @@ async function buildShareImage(list) {
   ctx.fillStyle = '#1c1f27'; ctx.fillRect(x0, y0, w, boxH);
 
   let y = y0;
+  const centers = [];
   sections.forEach(({ tier, keys }, idx) => {
     const h = heights[idx];
-    // lueur : ellipse centrée à gauche de la ligne, couleur du tier qui s'efface vers la droite
-    ctx.save();
-    ctx.beginPath(); ctx.rect(x0, y, w, h); ctx.clip();
-    ctx.translate(x0, y + h / 2); ctx.scale(w * 0.75, h * 2.1);
-    const g = ctx.createRadialGradient(0, 0, 0, 0, 0, 1);
-    g.addColorStop(0, hexA(tier.color, 0.4)); g.addColorStop(0.75, hexA(tier.color, 0));
-    ctx.fillStyle = g; ctx.fillRect(-0.1, -2, 3, 4);
-    ctx.restore();
-    // trait fin entre deux tiers
-    if (idx) { const hl = ctx.createLinearGradient(x0, 0, x0 + w * 0.7, 0); hl.addColorStop(0, 'rgba(255,255,255,.14)'); hl.addColorStop(1, 'rgba(255,255,255,0)'); ctx.fillStyle = hl; ctx.fillRect(x0 + BAR, y - 1, w - BAR, 1); }
+    if (idx) { ctx.fillStyle = '#0f1117'; ctx.fillRect(x0, y - 2, w, 2); } // trait sombre entre deux tiers
 
-    // lettre : dégradé + lueur + ombre portée, comme sur la page
-    const long = tier.name.length > 3, size = long ? 34 : 70;
+    // lettre : couleur du tier à plat, comme sur la page
+    const long = tier.name.length > 3, size = long ? 34 : 64;
     ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
-    ctx.font = `800 ${size}px "Baloo 2", sans-serif`;
+    ctx.font = '800 ' + size + 'px "Baloo 2", sans-serif';
     const cx = x0 + BAR + (LABEL - BAR) / 2, base = y + h / 2 + (tier.desc ? 8 : size * 0.3);
-    const tg = ctx.createLinearGradient(cx - 30, base - size, cx + 30, base);
-    tg.addColorStop(0, tier.color); tg.addColorStop(1, shade(tier.color, -0.2));
-    ctx.save(); ctx.shadowColor = 'rgba(0,0,0,.4)'; ctx.shadowOffsetY = 2; ctx.fillStyle = tg; ctx.fillText(tier.name.slice(0, 12), cx, base); ctx.restore();
-    ctx.save(); ctx.shadowColor = hexA(tier.color, 0.7); ctx.shadowBlur = 16; ctx.fillStyle = tg; ctx.fillText(tier.name.slice(0, 12), cx, base); ctx.restore();
+    ctx.save(); ctx.shadowColor = 'rgba(0,0,0,.3)'; ctx.shadowOffsetY = 2; ctx.fillStyle = tier.color; ctx.fillText(tier.name.slice(0, 12), cx, base); ctx.restore();
     if (tier.desc) { // légende sur une ou deux lignes
-      ctx.font = '600 14px Inter, sans-serif'; ctx.fillStyle = '#b9bdd0';
+      ctx.font = '600 14px Inter, sans-serif'; ctx.fillStyle = '#8f98b8';
       const words = tier.desc.split(' '); let line = '', ly = base + 24;
       for (const wd of words) { const t = line ? line + ' ' + wd : wd; if (ctx.measureText(t).width > LABEL - 24 && line) { ctx.fillText(line, cx, ly); line = wd; ly += 17; } else line = t; }
       ctx.fillText(line, cx, ly);
@@ -830,12 +821,13 @@ async function buildShareImage(list) {
       const px = x0 + LABEL + 6 + (i % perRow) * (PW + GAP), py = y + ROWPAD + Math.floor(i / perRow) * (PH + GAP);
       drawPoster(ctx, imgs.get(k), list.items[k].t, px, py, PW, PH);
     });
-    y += h + 1;
+    centers.push(y + h / 2);
+    y += h + 2;
   });
 
   // trait coloré continu sur le bord gauche : un seul dégradé qui traverse tous les tiers
   const bar = ctx.createLinearGradient(0, y0, 0, y0 + boxH);
-  sections.forEach(({ tier }, i) => bar.addColorStop((i + 0.5) / sections.length, tier.color));
+  sections.forEach(({ tier }, i) => bar.addColorStop(Math.min(1, (centers[i] - y0) / boxH), tier.color));
   ctx.fillStyle = bar; ctx.fillRect(x0, y0, BAR, boxH);
   ctx.restore();
   rr(ctx, x0, y0, w, boxH, 16); ctx.lineWidth = 2; ctx.strokeStyle = '#12141b'; ctx.stroke();
@@ -888,6 +880,16 @@ $('#shShare').onclick = async () => {
 $('#shClose').onclick = () => $('#dlgShare').close();
 $('#dlgShare').addEventListener('click', (e) => { if (e.target === $('#dlgShare')) $('#dlgShare').close(); });
 $('#dlgShare').addEventListener('close', () => { SH.busy++; });
+
+// Trait de couleur de gauche : un seul dégradé qui passe d'un tier à l'autre, placé d'après la hauteur réelle de chaque ligne.
+function updateBar() {
+  const box = $('#board .tiers');
+  if (!box || !box.offsetHeight) return;
+  const H = box.offsetHeight;
+  const stops = [...box.querySelectorAll('.tier')].map((r) => `${r.style.getPropertyValue('--c1')} ${Math.round(((r.offsetTop + r.offsetHeight / 2) / H) * 1000) / 10}%`);
+  box.style.setProperty('--bar', `linear-gradient(180deg, ${stops.join(', ')})`);
+}
+window.addEventListener('resize', updateBar);
 
 // ---------- Démarrage ----------
 document.body.classList.add('boot'); // animation d'arrivée, retirée ensuite pour ne pas se rejouer
