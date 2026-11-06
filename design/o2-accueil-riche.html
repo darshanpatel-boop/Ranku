@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Ajout O2</title>
+<link rel="stylesheet" href="base.css"><link rel="stylesheet" href="modal-blue.css">
+<style>
+/* O2 — Base N1 en bleu + écran d'accueil riche quand la recherche est vide + tri, compteurs et surlignage */
+.win { background: linear-gradient(180deg, #232c45 0, #262a35 160px); min-height: 560px; }
+.head { display: flex; align-items: center; gap: 12px; padding: 18px 20px 0; }
+.head h2 { margin: 0; flex: 1; font: 800 26px 'Baloo 2', sans-serif; }
+.bar { padding: 14px 20px 8px; }
+.recent { display: flex; flex-wrap: wrap; gap: 8px; padding: 0 20px 6px; align-items: center; font-size: 12px; color: #9aa0b4; }
+.body { flex: 1; overflow-y: auto; padding: 4px 20px 20px; }
+h3 { margin: 18px 0 10px; font: 700 16px 'Baloo 2', sans-serif; display: flex; align-items: center; gap: 8px; }
+h3::before { content: ''; width: 10px; height: 10px; border-radius: 50%; background: #4f8cff; }
+.rail { display: flex; gap: 12px; overflow-x: auto; padding: 4px 2px 10px; }
+.rail .it { flex: 0 0 112px; }
+.tools { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 4px 0 14px; }
+.tools select { margin-left: auto; background: #343949; color: #e4e7f3; border: 0; border-radius: 99px; padding: 7px 12px; font: 600 13px Inter, sans-serif; }
+.pill small { opacity: .7; margin-left: 4px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(124px, 1fr)); gap: 18px 12px; align-content: start; }
+.it { position: relative; cursor: pointer; background: none; border: 0; padding: 0; color: inherit; text-align: left; font: inherit; }
+.it img { width: 100%; aspect-ratio: 2/3; object-fit: cover; border-radius: 12px; border: 2px solid #0e1016; box-shadow: 0 4px 0 rgba(0,0,0,.4); display: block; transition: transform .15s; }
+.it:hover img { transform: translateY(-4px); }
+.it b { display: block; margin-top: 8px; font: 600 13px/1.25 Inter, sans-serif; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.it mark { background: rgba(79,140,255,.35); color: #fff; border-radius: 3px; padding: 0 1px; }
+.it .sc { position: absolute; top: 8px; left: 8px; padding: 2px 7px; border-radius: 99px; background: rgba(0,0,0,.68); font: 700 11px Inter, sans-serif; color: #ffe066; }
+.it .badge { position: absolute; top: 8px; right: 8px; width: 28px; height: 28px; border-radius: 50%; background: rgba(0,0,0,.65); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 700; }
+.it.added img { outline: 3px solid #4f8cff; outline-offset: 1px; filter: brightness(.7); }
+.it.added .badge { background: #4f8cff; }
+.foot { display: flex; align-items: center; gap: 14px; padding: 14px 20px; border-top: 1px solid #12141b; background: #1f222b; }
+.foot a { color: #7fb0ff; font-size: 13px; cursor: pointer; margin-right: auto; text-decoration: underline; }
+.foot .count { color: #c9cde0; font-size: 14px; }
+</style></head><body>
+<script src="mock.js"></script><script src="modal.js"></script>
+<div class="veil"><div class="win">
+  <div class="head"><h2>Ajouter des animés</h2><button class="x" aria-label="Fermer">✕</button></div>
+  <div class="bar"><label class="srch"><span id="ic"></span><input id="q" placeholder="Titre d'un animé…" autocomplete="off"></label></div>
+  <div class="recent" id="recent"><span>Recherches récentes :</span><button class="pill">frieren</button><button class="pill">death note</button><button class="pill">one piece</button></div>
+  <div class="body" id="body"></div>
+  <div class="foot"><a>Pas trouvé ? Chercher aussi sur AniList</a><span class="count" id="count"></span><button class="go">Terminé</button></div>
+</div></div>
+<script>
+document.getElementById('ic').innerHTML = ICON;
+const added = new Set([2, 6]);
+const body = document.getElementById('body'), q = document.getElementById('q');
+let sort = 'pert';
+const hl = (t, s) => { const i = norm(t).indexOf(norm(s.trim())); return !s.trim() || i < 0 ? t : t.slice(0, i) + '<mark>' + t.slice(i, i + s.trim().length) + '</mark>' + t.slice(i + s.trim().length); };
+const tile = (m, s = '') => `<button class="it${added.has(m.n) ? ' added' : ''}" data-n="${m.n}"><img src="${m.i}" alt=""><span class="sc">★ ${m.score}</span><span class="badge">${added.has(m.n) ? '✓' : '+'}</span><b>${hl(m.t, s)}</b><span class="meta">${m.meta}</span></button>`;
+function draw() {
+  const s = q.value, all = found('');
+  document.getElementById('recent').style.display = s ? 'none' : 'flex';
+  if (!s.trim()) {
+    body.innerHTML = `<h3>Populaires en ce moment</h3><div class="rail">${all.slice(0, 8).map((m) => tile(m)).join('')}</div><h3>Les mieux notés</h3><div class="rail">${[...all].sort((a, b) => b.score - a.score).slice(0, 8).map((m) => tile(m)).join('')}</div><h3>Ajoutés récemment</h3><div class="rail">${[...added].map((n) => tile(all[n])).join('') || '<span class="meta">Rien pour l’instant</span>'}</div>`;
+  } else {
+    let rows = found(s);
+    if (sort === 'note') rows.sort((a, b) => b.score - a.score);
+    if (sort === 'annee') rows.sort((a, b) => b.meta.slice(-4) - a.meta.slice(-4));
+    body.innerHTML = `<div class="tools"><button class="pill on">Tous <small>${rows.length}</small></button><button class="pill">Séries <small>${rows.length}</small></button><button class="pill">Films <small>0</small></button><select id="sort"><option value="pert">Pertinence</option><option value="note">Meilleure note</option><option value="annee">Plus récents</option></select></div><div class="grid">${rows.length ? rows.map((m) => tile(m, s)).join('') : '<div class="empty">Aucun résultat dans la base.</div>'}</div>`;
+    document.getElementById('sort').value = sort;
+  }
+  document.getElementById('count').textContent = added.size ? `${added.size} ajouté${added.size > 1 ? 's' : ''}` : '';
+}
+body.addEventListener('click', (e) => { const b = e.target.closest('.it'); if (b) { const n = +b.dataset.n; added.has(n) ? added.delete(n) : added.add(n); draw(); } });
+body.addEventListener('change', (e) => { if (e.target.id === 'sort') { sort = e.target.value; draw(); } });
+document.getElementById('recent').addEventListener('click', (e) => { if (e.target.classList.contains('pill')) { q.value = e.target.textContent; draw(); } });
+q.addEventListener('input', draw);
+draw();
+</script></body></html>

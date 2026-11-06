@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Ajout O3</title>
+<link rel="stylesheet" href="base.css"><link rel="stylesheet" href="modal-blue.css">
+<style>
+/* O3 — Base N1 en bleu + licences en pile avec tiroir « quelles saisons ? » (prépare la fusion des saisons) */
+.win { background: linear-gradient(180deg, #232c45 0, #262a35 160px); position: relative; }
+.head { display: flex; align-items: center; gap: 12px; padding: 18px 20px 0; }
+.head h2 { margin: 0; flex: 1; font: 800 26px 'Baloo 2', sans-serif; }
+.bar { padding: 14px 20px 6px; }
+.pills { display: flex; gap: 8px; padding: 8px 20px 12px; }
+.grid { flex: 1; overflow-y: auto; padding: 8px 20px 18px; display: grid; grid-template-columns: repeat(auto-fill, minmax(124px, 1fr)); gap: 20px 14px; align-content: start; min-height: 300px; }
+.it { position: relative; cursor: pointer; background: none; border: 0; padding: 0; color: inherit; text-align: left; font: inherit; }
+.it .pic { position: relative; }
+.it.stack .pic::before, .it.stack .pic::after { content: ''; position: absolute; inset: 0; border-radius: 12px; background: #3a4258; border: 2px solid #0e1016; z-index: 0; }
+.it.stack .pic::before { transform: translate(7px, -7px) rotate(2deg); background: #323a50; }
+.it.stack .pic::after { transform: translate(3.5px, -3.5px) rotate(1deg); }
+.it img { position: relative; z-index: 1; width: 100%; aspect-ratio: 2/3; object-fit: cover; border-radius: 12px; border: 2px solid #0e1016; box-shadow: 0 4px 0 rgba(0,0,0,.4); display: block; transition: transform .15s; }
+.it:hover img { transform: translateY(-4px); }
+.it b { display: block; margin-top: 8px; font: 600 13px/1.25 Inter, sans-serif; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.it .ns { position: absolute; z-index: 2; left: 8px; bottom: 8px; padding: 3px 9px; border-radius: 99px; background: #4f8cff; color: #fff; font: 700 11px Inter, sans-serif; box-shadow: 0 2px 6px rgba(0,0,0,.5); }
+.it .badge { position: absolute; z-index: 2; top: 8px; right: 8px; width: 28px; height: 28px; border-radius: 50%; background: rgba(0,0,0,.65); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 700; }
+.it.added img { outline: 3px solid #4f8cff; outline-offset: 1px; filter: brightness(.7); }
+.it.added .badge { background: #4f8cff; }
+.foot { display: flex; align-items: center; gap: 14px; padding: 14px 20px; border-top: 1px solid #12141b; background: #1f222b; }
+.foot a { color: #7fb0ff; font-size: 13px; cursor: pointer; margin-right: auto; text-decoration: underline; }
+.foot .count { color: #c9cde0; font-size: 14px; }
+/* tiroir des saisons */
+.drawer { position: absolute; left: 0; right: 0; bottom: 0; z-index: 10; background: #1c2030; border-top: 2px solid #4f8cff; border-radius: 18px 18px 0 0; box-shadow: 0 -16px 40px rgba(0,0,0,.55); padding: 16px 20px 18px; transform: translateY(105%); transition: transform .22s; }
+.drawer.show { transform: none; }
+.drawer .t { display: flex; gap: 14px; align-items: center; }
+.drawer .t img { width: 52px; height: 74px; object-fit: cover; border-radius: 8px; border: 2px solid #0e1016; }
+.drawer h4 { margin: 0; font: 800 20px 'Baloo 2', sans-serif; } .drawer .t span { color: #9aa0b4; font-size: 13px; }
+.drawer .t .all { margin-left: auto; }
+.seasons { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; margin: 14px 0; }
+.sn { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; background: #2a2f42; border: 2px solid transparent; cursor: pointer; font: 600 13px Inter, sans-serif; color: inherit; text-align: left; }
+.sn i { width: 20px; height: 20px; border-radius: 6px; border: 2px solid #5b6480; display: flex; align-items: center; justify-content: center; font: 700 13px Inter; font-style: normal; color: transparent; flex: none; }
+.sn.on { border-color: #4f8cff; background: #26335a; } .sn.on i { background: #4f8cff; border-color: #4f8cff; color: #fff; }
+.sn small { display: block; color: #9aa0b4; font-weight: 400; }
+.drawer .act { display: flex; gap: 10px; justify-content: flex-end; align-items: center; }
+.drawer .act .lk { margin-right: auto; color: #9aa0b4; font-size: 12px; }
+.drawer .act .ghost { background: #343949; color: #e4e7f3; border: 0; border-radius: 12px; padding: 11px 16px; font: 600 14px Inter, sans-serif; cursor: pointer; }
+</style></head><body>
+<script src="mock.js"></script><script src="modal.js"></script>
+<div class="veil"><div class="win">
+  <div class="head"><h2>Ajouter des animés</h2><button class="x" aria-label="Fermer">✕</button></div>
+  <div class="bar"><label class="srch"><span id="ic"></span><input id="q" placeholder="Titre d'un animé…" autocomplete="off"></label></div>
+  <div class="pills"><button class="pill on">Tous</button><button class="pill">Séries</button><button class="pill">Films</button></div>
+  <div class="grid" id="grid"></div>
+  <div class="foot"><a>Pas trouvé ? Chercher aussi sur AniList</a><span class="count" id="count"></span><button class="go">Terminé</button></div>
+  <div class="drawer" id="drawer"></div>
+</div></div>
+<script>
+document.getElementById('ic').innerHTML = ICON;
+// licences à plusieurs saisons (démo) : indice -> saisons
+const SEA = {
+  0: ['Saison 1', 'Saison 2', 'Saison 3', 'The Final Season', 'Final Season – Partie 2', 'Film : The Last Attack'],
+  6: ['One Piece (série)', 'Film 1', 'Film 2', 'Film : Stampede', 'Film : Red'],
+  8: ['Saison 1', 'Saison 2', 'Saison 3', 'Saison 4', 'Saison 5', 'Saison 6', 'Saison 7', 'Final Season', 'Film : Heroes Rising'],
+};
+const added = new Set([2]);
+const grid = document.getElementById('grid'), q = document.getElementById('q'), dr = document.getElementById('drawer');
+let open = null, picks = new Set();
+function draw() {
+  grid.innerHTML = found(q.value).map((m) => { const s = SEA[m.n]; return `<button class="it${s ? ' stack' : ''}${added.has(m.n) ? ' added' : ''}" data-n="${m.n}"><span class="pic"><img src="${m.i}" alt="">${s ? `<span class="ns">${s.length} saisons et films</span>` : ''}<span class="badge">${added.has(m.n) ? '✓' : (s ? '…' : '+')}</span></span><b>${m.t}</b><span class="meta">${m.meta}</span></button>`; }).join('') || '<div class="empty">Aucun résultat dans la base.</div>';
+  document.getElementById('count').textContent = added.size ? `${added.size} ajouté${added.size > 1 ? 's' : ''}` : '';
+}
+function drawer() {
+  if (open == null) { dr.classList.remove('show'); return; }
+  const s = SEA[open];
+  dr.innerHTML = `<div class="t"><img src="${MOCK[open].i}" alt=""><div><h4>${MOCK[open].t}</h4><span>Quelles saisons as-tu vues ?</span></div><button class="pill all" id="all">Tout cocher</button></div>
+    <div class="seasons">${s.map((n, i) => `<button class="sn${picks.has(i) ? ' on' : ''}" data-i="${i}"><i>✓</i><span>${n}<small>${n.startsWith('Film') ? 'Film' : 'Série'}</small></span></button>`).join('')}</div>
+    <div class="act"><span class="lk">Une seule carte sera ajoutée pour toute la licence.</span><button class="ghost" id="cancel">Annuler</button><button class="go" id="ok">Ajouter ${picks.size} élément${picks.size > 1 ? 's' : ''}</button></div>`;
+  dr.classList.add('show');
+}
+grid.addEventListener('click', (e) => {
+  const b = e.target.closest('.it'); if (!b) return; const n = +b.dataset.n;
+  if (SEA[n]) { open = n; picks = new Set([0]); drawer(); return; }
+  added.has(n) ? added.delete(n) : added.add(n); draw();
+});
+dr.addEventListener('click', (e) => {
+  const sn = e.target.closest('.sn');
+  if (sn) { const i = +sn.dataset.i; picks.has(i) ? picks.delete(i) : picks.add(i); drawer(); return; }
+  if (e.target.id === 'all') { SEA[open].forEach((_, i) => picks.add(i)); drawer(); }
+  if (e.target.id === 'cancel') { open = null; drawer(); }
+  if (e.target.id === 'ok' && picks.size) { added.add(open); open = null; drawer(); draw(); }
+});
+q.addEventListener('input', draw);
+draw();
+</script></body></html>
