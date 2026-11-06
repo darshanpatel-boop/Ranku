@@ -31,16 +31,30 @@ button.ghost { background: var(--panel2); }
 .top { position: sticky; top: 0; z-index: 5; display: flex; align-items: center; gap: 12px; padding: calc(8px + env(safe-area-inset-top)) max(12px, calc((100% - var(--max)) / 2)) 8px; background: #1c1f27; border-bottom: 1px solid var(--edge); }
 .brand { margin: 0; font: 800 28px/1 'Baloo 2', sans-serif; letter-spacing: .01em; }
 .brand span { color: #ff6b57; } .brand b { color: var(--yellow); }
-.top select { flex: 1; min-width: 0; max-width: 360px; padding: 10px 12px; border-radius: 10px; border: 0; background: var(--panel); font-weight: 600; }
-.top .icon-btn { margin-left: auto; }
-/* Bouton d'ajout d'animés : en haut, bien visible. Sur téléphone il passe sur sa propre ligne. */
-.searchbtn { order: 5; flex: 1 0 100%; display: flex; align-items: center; justify-content: center; gap: 8px; background: var(--yellow); color: #2a1a00; font-weight: 700; padding: 11px 14px; border-radius: 12px; box-shadow: 0 3px 0 #c98a00; }
-.searchbtn span { font-size: 18px; line-height: 1; }
+/* Onglets des tier lists (remplacent le menu caché) */
 .top { flex-wrap: wrap; }
-@media (min-width: 700px) {
-  .searchbtn { order: 0; flex: 1; max-width: 340px; margin-left: auto; }
-  .top .icon-btn { margin-left: 0; }
-}
+.list-tabs { flex: 1 0 100%; display: flex; align-items: center; gap: 6px; overflow-x: auto; scrollbar-width: none; padding: 2px 0; }
+.list-tabs::-webkit-scrollbar { display: none; }
+@media (min-width: 700px) { .list-tabs { flex: 1; min-width: 0; } }
+.chip { flex: none; padding: 7px 14px; border-radius: 10px; background: var(--panel); color: #c9cde0; font-weight: 600; white-space: nowrap; }
+.chip.on { background: var(--yellow); color: #2a1a00; font-weight: 700; box-shadow: 0 0 0 2px #f59e0b inset; }
+.chip-edit { flex: none; width: 32px; height: 32px; padding: 0; margin-left: -4px; border-radius: 50%; background: var(--panel2); font-size: 15px; }
+.chip.add { background: transparent; border: 1px dashed var(--panel2); color: var(--muted); }
+
+/* Flèches pour réordonner les tiers */
+.mv { position: absolute; left: calc(var(--label-w) - 32px); top: 50%; transform: translateY(-50%); z-index: 3; display: flex; flex-direction: column; gap: 4px; }
+.mv button { width: 26px; height: 24px; padding: 0; border-radius: 7px; background: rgba(0,0,0,.35); color: #dfe2f0; font-size: 10px; line-height: 1; }
+.mv button:disabled { opacity: .2; cursor: default; }
+.mv button:not(:disabled):hover { background: rgba(0,0,0,.6); }
+
+/* Ajouter des animés : juste au-dessus de « Non classé » */
+.add-anime { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; margin-top: 22px; background: var(--yellow); color: #2a1a00; font-weight: 700; font-size: 16px; padding: 13px 16px; border-radius: 12px; box-shadow: 0 4px 0 #c98a00; }
+.add-anime span { font-size: 20px; line-height: 1; }
+.add-anime + .cork { margin-top: 34px; }
+@media (min-width: 700px) { .add-anime { width: auto; padding: 13px 26px; } }
+
+.site-foot { max-width: var(--max); margin: 28px auto 0; padding: 0 12px; text-align: center; }
+.link { background: transparent; color: var(--muted); font-size: 13px; text-decoration: underline; }
 
 #board { max-width: var(--max); margin: 0 auto; }
 #board { padding: 18px 12px 0; }
@@ -50,7 +64,7 @@ button.ghost { background: var(--panel2); }
 .tiers::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 6px; background: var(--bar); z-index: 2; }
 .tier { position: relative; display: flex; min-height: calc(var(--card-h) + 14px); background: radial-gradient(ellipse 75% 210% at 0% 50%, color-mix(in srgb, var(--c1) 40%, transparent), transparent 75%); }
 .tier + .tier::before { content: ''; position: absolute; left: 6px; right: 0; top: 0; height: 1px; background: linear-gradient(90deg, rgba(255,255,255,.14), transparent 70%); }
-.tier-label { flex: 0 0 var(--label-w); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 6px 4px 6px 10px; background: transparent; border-radius: 0; cursor: pointer; }
+.tier-label { flex: 0 0 var(--label-w); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 6px 34px 6px 10px; background: transparent; border-radius: 0; cursor: pointer; }
 .tier-label b { font: 800 44px/1 'Baloo 2', sans-serif; max-width: 100%; word-break: break-word; background: linear-gradient(135deg, var(--c1), var(--c2)); -webkit-background-clip: text; background-clip: text; color: transparent; filter: drop-shadow(0 0 14px color-mix(in srgb, var(--c1) 70%, transparent)) drop-shadow(0 2px 0 rgba(0,0,0,.35)); }
 .tier-label.long b { font-size: 20px; }
 .tier-label small { margin-top: 2px; font: 600 10px/1.2 'Inter', sans-serif; color: #b9bdd0; text-align: center; }
@@ -113,7 +127,7 @@ dialog::backdrop { background: rgba(0,0,0,.65); }
 
 /* Fenêtre du tier : aperçu en direct, champs, palette de couleurs, boutons */
 .tier-preview { min-height: 88px; border-radius: 12px; overflow: hidden; background-color: var(--dark); border: 2px solid var(--edge); }
-.tier-preview .tier-label { flex-basis: 130px; pointer-events: none; }
+.tier-preview .tier-label { flex-basis: 130px; padding-right: 4px; pointer-events: none; }
 .tier-preview .tier-label b { font-size: 46px; }
 .tier-preview .zone { min-height: 0; }
 .modal .fld { display: flex; flex-direction: column; align-items: stretch; gap: 4px; font-size: 13px; color: var(--muted); }

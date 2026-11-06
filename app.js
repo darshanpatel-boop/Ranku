@@ -86,9 +86,7 @@ function card(list, key) {
 
 function render() {
   const list = cur();
-  const select = $('#listSelect');
-  select.replaceChildren(...db.lists.map((l) => h('option', { value: l.id }, l.name)));
-  select.value = list.id;
+  renderTabs();
 
   sortables.forEach((s) => s.destroy());
   sortables = [];
@@ -97,13 +95,17 @@ function render() {
 
   // trait coloré continu sur le bord gauche : un seul dégradé de bas en haut des tiers
   const bar = `linear-gradient(180deg, ${list.tiers.map((t, i) => `${t.color} ${Math.round(((i + 0.5) / list.tiers.length) * 100)}%`).join(', ')})`;
-  board.append(h('div', { class: 'tiers', style: `--bar:${bar}` }, list.tiers.map((t) =>
+  board.append(h('div', { class: 'tiers', style: `--bar:${bar}` }, list.tiers.map((t, i) =>
     h('div', { class: 'tier', style: `--c1:${t.color};--c2:${shade(t.color, -0.2)}` },
+      h('div', { class: 'mv' },
+        h('button', { dataset: { mv: '-1', tier: t.id }, 'aria-label': 'Monter ce tier', type: 'button', ...(i === 0 ? { disabled: '' } : {}) }, '▲'),
+        h('button', { dataset: { mv: '1', tier: t.id }, 'aria-label': 'Descendre ce tier', type: 'button', ...(i === list.tiers.length - 1 ? { disabled: '' } : {}) }, '▼')),
       h('button', { class: 'tier-label' + (t.name.length > 3 ? ' long' : ''), dataset: { tier: t.id }, type: 'button' },
         h('b', {}, t.name), t.desc ? h('small', {}, t.desc) : null),
       h('div', { class: 'zone', dataset: { zone: t.id } }, t.items.filter((k) => list.items[k]).map((k) => card(list, k))))),
     h('button', { class: 'add-tier', type: 'button' }, '＋ Ajouter un tier')));
   board.append(
+    h('button', { class: 'add-anime', type: 'button' }, h('span', {}, '＋'), ' Ajouter des animés'),
     h('div', { class: 'cork' },
       h('div', { class: 'note' }, 'Non classé'),
       h('div', { class: 'zone', dataset: { zone: 'pool' } }, list.pool.filter((k) => list.items[k]).map((k) => card(list, k)))));
@@ -175,6 +177,9 @@ function removeSel() {
 $('#board').addEventListener('click', (e) => {
   const c = e.target.closest('.card');
   if (c) { sel = sel === c.dataset.k ? null : c.dataset.k; render(); return; }
+  const mv = e.target.closest('[data-mv]');
+  if (mv) { swapTier(mv.dataset.tier, Number(mv.dataset.mv)); return; }
+  if (e.target.closest('.add-anime')) { openSearch(); return; }
   if (e.target.closest('.add-tier')) { openTier(null); return; }
   const lab = e.target.closest('.tier-label');
   if (lab) openTier(lab.dataset.tier);
@@ -240,8 +245,11 @@ $('#dlgTier').addEventListener('close', () => {
 });
 function moveTier(d) {
   applyDraft();
+  swapTier(editTier, d);
+}
+function swapTier(id, d) {
   const ts = cur().tiers;
-  const i = ts.findIndex((x) => x.id === editTier);
+  const i = ts.findIndex((x) => x.id === id);
   const j = i + d;
   if (j < 0 || j >= ts.length) return;
   [ts[i], ts[j]] = [ts[j], ts[i]];
@@ -259,33 +267,65 @@ $('#tierDel').onclick = () => {
   $('#dlgTier').close();
 };
 
-// ---------- Plusieurs tier lists ----------
-$('#listSelect').onchange = (e) => { db.cur = e.target.value; sel = null; save(); render(); };
-$('#btnMenu').onclick = () => $('#dlgMenu').showModal();
+// ---------- Plusieurs tier lists : onglets en haut, plus de menu caché ----------
+function renderTabs() {
+  const box = $('#listTabs');
+  box.replaceChildren(
+    ...db.lists.flatMap((l) => {
+      const on = l.id === db.cur;
+      const out = [h('button', { class: 'chip' + (on ? ' on' : ''), dataset: { list: l.id }, type: 'button' }, l.name)];
+      if (on) out.push(h('button', { class: 'chip-edit', dataset: { editlist: '1' }, 'aria-label': 'Renommer ou supprimer cette liste', type: 'button' }, '✎'));
+      return out;
+    }),
+    h('button', { class: 'chip add', dataset: { newlist: '1' }, type: 'button' }, '＋ Nouvelle liste'));
+  $('.chip.on', box)?.scrollIntoView({ inline: 'nearest', block: 'nearest' });
+}
 
-$('#dlgMenu').addEventListener('click', (e) => {
-  const act = e.target.dataset?.act;
-  if (!act) return;
-  const dlg = $('#dlgMenu');
-  if (act === 'new') {
-    const n = prompt('Nom de la nouvelle tier list :', 'Nouvelle tier list');
-    if (n && n.trim()) { const l = newList(n.trim()); db.lists.push(l); db.cur = l.id; sel = null; save(); render(); dlg.close(); }
-  } else if (act === 'rename') {
-    const n = prompt('Nouveau nom :', cur().name);
-    if (n && n.trim()) { cur().name = n.trim(); save(); render(); dlg.close(); }
-  } else if (act === 'delete') {
-    if (db.lists.length === 1) return toast('Il faut garder au moins une tier list');
-    if (confirm(`Supprimer « ${cur().name} » ?`)) {
-      db.lists = db.lists.filter((l) => l.id !== db.cur);
-      db.cur = db.lists[0].id; sel = null; save(); render(); dlg.close();
-    }
-  } else if (act === 'about') {
-    dlg.close();
-    $('#aboutDate').textContent = animeData ? `Base mise à jour le ${animeData.lastUpdate}.` : '';
-    $('#dlgAbout').showModal();
-    loadData();
-  }
+let editList = null; // id de la liste modifiée, null = création
+let delArmed = false;
+function openList(id) {
+  const dlg = $('#dlgList');
+  editList = id;
+  delArmed = false;
+  $('#listDel').textContent = 'Supprimer';
+  $('#listTitle').textContent = id ? 'Modifier la liste' : 'Nouvelle tier list';
+  $('#listOk').textContent = id ? 'OK' : 'Créer';
+  $('#listName').value = id ? db.lists.find((l) => l.id === id).name : '';
+  dlg.classList.toggle('is-new', !id);
+  dlg.returnValue = '';
+  dlg.showModal();
+  $('#listName').focus();
+}
+$('#listOk').addEventListener('click', (e) => { if (!$('#listName').value.trim()) { e.preventDefault(); $('#listName').focus(); } });
+$('#dlgList').addEventListener('close', () => {
+  if ($('#dlgList').returnValue !== 'ok') return;
+  const name = $('#listName').value.trim();
+  if (!name) return;
+  if (editList) db.lists.find((l) => l.id === editList).name = name;
+  else { const l = newList(name); db.lists.push(l); db.cur = l.id; sel = null; }
+  save(); render();
 });
+$('#listDel').onclick = () => {
+  if (db.lists.length === 1) return toast('Il faut garder au moins une tier list');
+  if (!delArmed) { delArmed = true; $('#listDel').textContent = 'Sûr ? Appuie pour supprimer'; return; }
+  db.lists = db.lists.filter((l) => l.id !== editList);
+  if (db.cur === editList) db.cur = db.lists[0].id;
+  sel = null; editList = null;
+  $('#dlgList').close('deleted');
+  save(); render();
+};
+$('#listTabs').addEventListener('click', (e) => {
+  const chip = e.target.closest('[data-list]');
+  if (chip) { db.cur = chip.dataset.list; sel = null; save(); render(); return; }
+  if (e.target.closest('[data-editlist]')) openList(cur().id);
+  else if (e.target.closest('[data-newlist]')) openList(null);
+});
+
+$('#btnAbout').onclick = () => {
+  $('#aboutDate').textContent = animeData ? `Base mise à jour le ${animeData.lastUpdate}.` : '';
+  $('#dlgAbout').showModal();
+  loadData();
+};
 
 // ---------- Recherche : base locale + AniList en complément ----------
 let animeData = null;
@@ -410,12 +450,12 @@ async function doSearch() {
 
 let debounce;
 $('#q').addEventListener('input', () => { clearTimeout(debounce); debounce = setTimeout(doSearch, 200); });
-$('#btnSearch').onclick = () => {
+function openSearch() {
   $('#dlgSearch').showModal();
   $('#q').focus();
   if (!$('#q').value) doSearch();
   loadData().catch(() => {});
-};
+}
 $('#dlgSearch').addEventListener('close', render);
 
 // ---------- Démarrage ----------

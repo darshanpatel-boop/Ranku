@@ -15,12 +15,11 @@
 <body>
 <header class="top">
   <h1 class="brand"><span>Ran</span><b>ku</b></h1>
-  <select id="listSelect" aria-label="Tier list"></select>
-  <button id="btnSearch" class="searchbtn" type="button"><span>＋</span> Ajouter des animés</button>
-  <button id="btnMenu" class="icon-btn" aria-label="Menu">⋯</button>
+  <nav id="listTabs" class="list-tabs" aria-label="Mes tier lists"></nav>
 </header>
 
 <main id="board"></main>
+<footer class="site-foot"><button id="btnAbout" class="link" type="button">À propos et sources des données</button></footer>
 
 <div id="placeBar" class="place-bar" hidden></div>
 
@@ -54,14 +53,15 @@
   </form>
 </dialog>
 
-<dialog id="dlgMenu" class="modal">
+<dialog id="dlgList" class="modal">
   <form method="dialog">
-    <h2>Tier lists</h2>
-    <button type="button" data-act="new" class="ghost">Nouvelle tier list</button>
-    <button type="button" data-act="rename" class="ghost">Renommer</button>
-    <button type="button" data-act="delete" class="danger">Supprimer celle-ci</button>
-    <button type="button" data-act="about" class="ghost">À propos</button>
-    <button value="close" class="primary">Fermer</button>
+    <h2 id="listTitle">Nouvelle tier list</h2>
+    <label class="fld">Nom <input id="listName" maxlength="30" autocomplete="off" placeholder="Ex. Mes animés 2025"></label>
+    <div class="foot">
+      <div class="only-edit"><button type="button" id="listDel" class="danger sm">Supprimer</button></div>
+      <button value="ok" id="listOk" class="primary">Créer</button>
+      <button value="cancel" class="ghost only-new">Annuler</button>
+    </div>
   </form>
 </dialog>
 
