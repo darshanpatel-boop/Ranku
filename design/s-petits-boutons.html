@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Petits boutons Ajouter / Terminé</title>
+<link rel="stylesheet" href="base.css">
+<style>
+body { overflow: auto; }
+.wrap { max-width: 980px; margin: 0 auto; padding: 24px 16px 60px; }
+h1 { margin: 0 0 4px; } .sub { color: #9aa0b4; margin-bottom: 22px; }
+.set { display: grid; grid-template-columns: 190px 1fr 1fr; gap: 14px; align-items: center; margin-bottom: 12px; padding: 12px 14px; border-radius: 16px; background: #2a2e3b; border: 2px solid #0f1117; box-shadow: 0 4px 0 #0f1117; }
+.set h2 { margin: 0; font: 800 17px 'Baloo 2', sans-serif; } .set h2 small { display: block; font: 500 12px Inter; color: #9aa0b4; margin-top: 2px; }
+.cap { grid-column: 2 / -1; display: none; }
+.bar { display: flex; align-items: center; gap: 10px; height: 54px; padding: 0 8px 0 14px; border-radius: 14px; background: #2a2e3b; background: #232733; border: 2px solid #0f1117; box-shadow: 0 3px 0 #0f1117; color: #8f98b8; font: 600 14px Inter; }
+.bar svg { width: 18px; height: 18px; stroke: #4f8cff; fill: none; stroke-width: 2.4; stroke-linecap: round; flex: none; } .bar span { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.foot { display: flex; align-items: center; gap: 12px; height: 54px; padding: 0 10px 0 14px; border-radius: 14px; background: #1d212d; border: 2px solid #12141b; }
+.foot .lk { margin-right: auto; color: #7fb0ff; font-size: 12px; text-decoration: underline; } .foot .c { color: #c9cde0; font-size: 13px; }
+button.bn { display: inline-flex; align-items: center; gap: 7px; flex: none; cursor: pointer; border: 0; color: #fff; font-family: Inter, sans-serif; transition: translate .1s, box-shadow .1s, filter .15s, background .15s, color .15s, rotate .15s; }
+button.bn svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+.bn.ic0 svg { display: none; }
+.bn:hover { filter: brightness(1.08); }
+
+/* 0 — Actuel */
+.v0 .bn { padding: 9px 16px; border-radius: 11px; background: #4f8cff; border: 2px solid #0f1117; box-shadow: 0 3px 0 #0f1117; font: 700 14px Inter; }
+.v0 .bn:active { translate: 0 2px; box-shadow: 0 1px 0 #0f1117; }
+
+/* 1 — Pilule brillante */
+.v1 .bn { padding: 9px 20px; border-radius: 99px; background: linear-gradient(180deg, #7aa9ff, #4f8cff 55%, #3a72e6); border: 2px solid #0f1117; box-shadow: 0 3px 0 #0f1117, inset 0 2px 0 rgba(255,255,255,.5); text-shadow: 0 1px 0 rgba(0,0,0,.28); font: 800 14px Inter; }
+.v1 .bn:active { translate: 0 2px; box-shadow: 0 1px 0 #0f1117, inset 0 2px 0 rgba(255,255,255,.5); }
+
+/* 2 — Autocollant jaune penché */
+.v2 .bn { padding: 9px 16px; border-radius: 10px; background: linear-gradient(180deg, #ffe27a, #ffd24d 55%, #f7b32b); color: #2a1a00; border: 2px solid #11131a; box-shadow: 0 3px 0 #11131a, inset 0 2px 0 rgba(255,255,255,.55), inset 0 -3px 0 rgba(214,124,0,.5); font: 800 13px Inter; letter-spacing: .05em; text-transform: uppercase; rotate: -2.5deg; }
+.v2 .bn:hover { rotate: 0deg; filter: none; } .v2 .bn:active { translate: 0 2px; box-shadow: 0 1px 0 #11131a, inset 0 2px 0 rgba(255,255,255,.55); }
+
+/* 3 — Contour lumineux */
+.v3 .bn { padding: 9px 18px; border-radius: 12px; background: rgba(79,140,255,.12); border: 2px solid #4f8cff; color: #a9c6ff; box-shadow: 0 0 14px rgba(79,140,255,.45), inset 0 0 10px rgba(79,140,255,.22); font: 800 14px Inter; }
+.v3 .bn:hover { background: #4f8cff; color: #fff; filter: none; } .v3 .bn:active { scale: .97; }
+
+/* 4 — Vert menthe */
+.v4 .bn { padding: 9px 18px; border-radius: 12px; background: linear-gradient(180deg, #96f2c9, #4ade9f 55%, #2fc98a); color: #04281c; border: 2px solid #0f1117; box-shadow: 0 3px 0 #0f1117, inset 0 2px 0 rgba(255,255,255,.5); font: 800 14px Inter; }
+.v4 .bn:active { translate: 0 2px; box-shadow: 0 1px 0 #0f1117, inset 0 2px 0 rgba(255,255,255,.5); }
+
+/* 5 — Blanc */
+.v5 .bn { padding: 9px 18px; border-radius: 12px; background: #f4f6ff; color: #1a1d27; border: 2px solid #0f1117; box-shadow: 0 3px 0 #0f1117, inset 0 -3px 0 rgba(0,0,0,.12); font: 800 14px Inter; }
+.v5 .bn:hover { background: #fff; filter: none; } .v5 .bn:active { translate: 0 2px; box-shadow: 0 1px 0 #0f1117, inset 0 -3px 0 rgba(0,0,0,.12); }
+
+/* 6 — Bleu avec rond d'icône */
+.v6 .bn { padding: 5px 16px 5px 5px; border-radius: 99px; background: #4f8cff; border: 2px solid #0f1117; box-shadow: 0 3px 0 #0f1117, inset 0 2px 0 rgba(255,255,255,.3); font: 800 14px Inter; }
+.v6 .bn svg { width: 28px; height: 28px; padding: 6px; border-radius: 50%; background: #fff; color: #3a72e6; stroke-width: 3.4; }
+.v6 .bn:active { translate: 0 2px; box-shadow: 0 1px 0 #0f1117, inset 0 2px 0 rgba(255,255,255,.3); }
+
+/* 7 — Dégradé violet → rose */
+.v7 .bn { padding: 9px 18px; border-radius: 12px; background: linear-gradient(135deg, #8b5cf6, #ec4899); border: 2px solid #0f1117; box-shadow: 0 3px 0 #0f1117, inset 0 2px 0 rgba(255,255,255,.3); text-shadow: 0 1px 0 rgba(0,0,0,.25); font: 800 14px Inter; }
+.v7 .bn:active { translate: 0 2px; box-shadow: 0 1px 0 #0f1117, inset 0 2px 0 rgba(255,255,255,.3); }
+</style></head><body>
+<div class="wrap">
+  <h1>Petits boutons « Ajouter » et « Terminé »</h1>
+  <div class="sub">Seulement ces deux boutons. À gauche de chaque ligne : le nom du style ; au milieu, « Ajouter » dans la barre de l'accueil ; à droite, « Terminé » dans le pied de la fenêtre d'ajout. Survole-les et appuie dessus.</div>
+  <div id="sets"></div>
+</div>
+<script>
+const PLUS = '<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>';
+const CHECK = '<svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+const LOUPE = '<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>';
+const SETS = [
+  ['v0', 'Actuel', 'celui que tu n’aimes pas', true],
+  ['v1', '1 · Pilule brillante', 'arrondie, reflet en haut', true],
+  ['v2', '2 · Autocollant jaune', 'penché, comme l’onglet', false],
+  ['v3', '3 · Contour lumineux', 'transparent, bord bleu', false],
+  ['v4', '4 · Vert menthe', 'couleur « valider »', false],
+  ['v5', '5 · Blanc', 'très contrasté', false],
+  ['v6', '6 · Bleu + rond d’icône', 'avec « + » et coche', true],
+  ['v7', '7 · Violet → rose', 'dégradé coloré', false],
+];
+document.getElementById('sets').innerHTML = SETS.map(([c, t, d, icon]) => `
+  <section class="set ${c}">
+    <h2>${t}<small>${d}</small></h2>
+    <div class="bar">${LOUPE}<span>Rechercher un animé à ajouter…</span><button class="bn${c === 'v6' ? '' : ' ic0'}">${c === 'v6' ? PLUS : ''}Ajouter</button></div>
+    <div class="foot"><span class="lk">Pas trouvé ? AniList</span><span class="c">3 ajoutés</span><button class="bn${c === 'v6' ? '' : ' ic0'}">${c === 'v6' ? CHECK : ''}Terminé</button></div>
+  </section>`).join('');
+</script></body></html>
