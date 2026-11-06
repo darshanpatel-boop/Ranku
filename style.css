@@ -314,3 +314,8 @@ button.danger { background: #3a2328; color: #ff9a9a; border: 2px solid var(--lin
 .list-tabs .chip.on { background: transparent; box-shadow: none; border-color: transparent; color: #fff; text-shadow: 0 1px 0 rgba(0,0,0,.25); }
 .list-tabs .chip.on:active { translate: none; box-shadow: none; }
 .list-tabs .chip.add { border: 2px dashed #4a5068; }
+
+/* ===== Onglet actif : copie du modèle Croc'Savoir (jaune, légèrement penché, bord sombre, relief) ===== */
+.tab-pill { background: linear-gradient(180deg, #ffe27a 0%, #ffd24d 55%, #f7b32b 100%); border: 2px solid #11131a; border-radius: 13px; rotate: -2deg; box-shadow: 0 3px 0 #11131a, 0 0 0 1px rgba(255,255,255,.1), inset 0 2px 0 rgba(255,255,255,.55), inset 0 -3px 0 rgba(214,124,0,.55); }
+.list-tabs .chip.on { color: #2a1a00; text-shadow: none; font-weight: 800; rotate: -2deg; }
+.list-tabs .chip:not(.on):not(.add) { color: #eef0f7; font-weight: 500; }
