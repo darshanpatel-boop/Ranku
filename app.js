@@ -733,7 +733,7 @@ $('#dlgFiche').addEventListener('close', () => { ficheKey = null; });
 
 // ---------- Partager : image de la tier list (aperçu, télécharger, copier, partage natif) ----------
 const SHARE_ICON = '<svg viewBox="0 0 24 24"><path d="M12 15V3M7.5 7.5L12 3l4.5 4.5M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg>';
-const SH = { blob: null, pool: false, busy: 0 };
+const SH = { blob: null, busy: 0 };
 
 const loadImage = (url) => new Promise((resolve) => {
   const im = new Image();
@@ -753,8 +753,10 @@ function rr(ctx, x, y, w, h, r) { // rectangle arrondi (compatible partout)
 }
 
 function drawPoster(ctx, im, title, x, y, w, h) {
+  const R = 12;
+  rr(ctx, x, y + 3, w, h, R); ctx.fillStyle = 'rgba(0,0,0,.45)'; ctx.fill(); // relief sous l'affiche, comme sur la page
   ctx.save();
-  rr(ctx, x, y, w, h, 10); ctx.clip();
+  rr(ctx, x, y, w, h, R); ctx.clip();
   if (im) { // recadrage « cover »
     const k = Math.max(w / im.width, h / im.height), sw = w / k, sh = h / k;
     ctx.drawImage(im, (im.width - sw) / 2, (im.height - sh) / 2, sw, sh, x, y, w, h);
@@ -764,79 +766,79 @@ function drawPoster(ctx, im, title, x, y, w, h) {
     title.split(' ').slice(0, 6).forEach((word, i) => ctx.fillText(word, x + w / 2, y + 30 + i * 16));
   }
   ctx.restore();
-  rr(ctx, x, y, w, h, 10); ctx.lineWidth = 2; ctx.strokeStyle = '#0f1117'; ctx.stroke();
+  rr(ctx, x + 1, y + 1, w - 2, h - 2, R - 1); ctx.lineWidth = 2; ctx.strokeStyle = '#0e1016'; ctx.stroke();
 }
 
-async function buildShareImage(list, withPool) {
-  try { await Promise.all([document.fonts.load('800 60px "Baloo 2"'), document.fonts.load('600 14px Inter')]); } catch { /* polices système */ }
-  const W = 1200, PAD = 24, LABEL = 150, PW = 100, PH = 142, GAP = 8, ROWPAD = 10;
-  const perRow = Math.floor((W - PAD * 2 - LABEL - ROWPAD * 2 + GAP) / (PW + GAP));
-  const sections = list.tiers.map((t) => ({ tier: t, keys: t.items.filter((k) => list.items[k]) }));
-  const pool = withPool ? list.pool.filter((k) => list.items[k]) : [];
-  const rowH = (n) => Math.max(1, Math.ceil(n / perRow)) * (PH + GAP) - GAP + ROWPAD * 2;
-  const TITLE_H = 96, FOOT_H = 46;
-  const H = PAD + TITLE_H + sections.reduce((s, x) => s + rowH(x.keys.length), 0) + sections.length * 2 + (pool.length ? 22 + Math.max(1, Math.ceil(pool.length / (perRow + 1))) * (PH + GAP) + 28 : 0) + FOOT_H;
+const hexA = (hex, a) => { const n = parseInt(hex.slice(1), 16); return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`; };
 
-  // charge toutes les affiches en parallèle
+// Même rendu que la page : un bloc arrondi, trait coloré continu à gauche, lueur de chaque tier, lettre qui rayonne, légende dessous.
+async function buildShareImage(list) {
+  try { await Promise.all([document.fonts.load('800 60px "Baloo 2"'), document.fonts.load('600 14px Inter')]); } catch { /* polices système */ }
+  const W = 1200, PAD = 24, LABEL = 170, PW = 100, PH = 142, GAP = 8, ROWPAD = 10, BAR = 6;
+  const perRow = Math.floor((W - PAD * 2 - LABEL - 12) / (PW + GAP));
+  const sections = list.tiers.map((t) => ({ tier: t, keys: t.items.filter((k) => list.items[k]) }));
+  const rowH = (n) => Math.max(1, Math.ceil(n / perRow)) * (PH + GAP) - GAP + ROWPAD * 2;
+  const heights = sections.map((x) => rowH(x.keys.length));
+  const boxH = heights.reduce((s, h) => s + h, 0) + (sections.length - 1);
+  const H = PAD * 2 + boxH + 5;
+
   const urls = new Map();
-  [...sections.flatMap((x) => x.keys), ...pool].forEach((k) => { if (!urls.has(k)) urls.set(k, imgUrl(list.items[k].i)); });
+  sections.flatMap((x) => x.keys).forEach((k) => { if (!urls.has(k)) urls.set(k, imgUrl(list.items[k].i)); });
   const imgs = new Map(await Promise.all([...urls].map(async ([k, u]) => [k, await loadImage(u)])));
 
   const cv = document.createElement('canvas');
   cv.width = W; cv.height = H;
   const ctx = cv.getContext('2d');
-  const bg = ctx.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, '#2d313c'); bg.addColorStop(1, '#1c1f27');
-  ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = '#23262f'; ctx.fillRect(0, 0, W, H); // fond de la page
 
-  // titre + logo
-  ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left';
-  ctx.font = '800 46px "Baloo 2", sans-serif'; ctx.fillStyle = '#ffffff';
-  ctx.fillText(list.name.slice(0, 40), PAD, PAD + 56);
-  ctx.textAlign = 'right'; ctx.font = '800 40px "Baloo 2", sans-serif';
-  const kuW = ctx.measureText('ku').width;
-  ctx.lineJoin = 'round'; ctx.lineWidth = 8; ctx.strokeStyle = '#0f1117';
-  ctx.strokeText('ku', W - PAD, PAD + 54); ctx.fillStyle = '#4f8cff'; ctx.fillText('ku', W - PAD, PAD + 54);
-  ctx.strokeText('Ran', W - PAD - kuW, PAD + 54); ctx.fillStyle = '#ff6b57'; ctx.fillText('Ran', W - PAD - kuW, PAD + 54);
+  const x0 = PAD, y0 = PAD, w = W - PAD * 2;
+  rr(ctx, x0, y0 + 5, w, boxH, 16); ctx.fillStyle = 'rgba(0,0,0,.4)'; ctx.fill(); // relief du bloc
+  ctx.save();
+  rr(ctx, x0, y0, w, boxH, 16); ctx.clip();
+  ctx.fillStyle = '#1c1f27'; ctx.fillRect(x0, y0, w, boxH);
 
-  // tiers
-  let y = PAD + TITLE_H;
-  for (const { tier, keys } of sections) {
-    const h = rowH(keys.length), x0 = PAD, w = W - PAD * 2;
-    ctx.save(); rr(ctx, x0, y, w, h, 14); ctx.clip();
-    ctx.fillStyle = '#1c1f27'; ctx.fillRect(x0, y, w, h);
-    const glow = ctx.createLinearGradient(x0, 0, x0 + w * 0.7, 0);
-    glow.addColorStop(0, tier.color + '66'); glow.addColorStop(1, tier.color + '00');
-    ctx.fillStyle = glow; ctx.fillRect(x0, y, w, h);
-    // bloc de la lettre
-    const lg = ctx.createLinearGradient(0, y, 0, y + h); lg.addColorStop(0, tier.color); lg.addColorStop(1, shade(tier.color, -0.2));
-    ctx.fillStyle = lg; ctx.fillRect(x0, y, LABEL, h);
-    ctx.fillStyle = textOn(tier.color); ctx.textAlign = 'center';
-    const long = tier.name.length > 3;
-    ctx.font = `800 ${long ? 30 : 64}px "Baloo 2", sans-serif`;
-    ctx.fillText(tier.name.slice(0, 12), x0 + LABEL / 2, y + h / 2 + (tier.desc ? 4 : long ? 10 : 22));
-    if (tier.desc) { ctx.font = '700 14px Inter, sans-serif'; ctx.globalAlpha = .8; ctx.fillText(tier.desc.slice(0, 18), x0 + LABEL / 2, y + h / 2 + 28); ctx.globalAlpha = 1; }
+  let y = y0;
+  sections.forEach(({ tier, keys }, idx) => {
+    const h = heights[idx];
+    // lueur : ellipse centrée à gauche de la ligne, couleur du tier qui s'efface vers la droite
+    ctx.save();
+    ctx.beginPath(); ctx.rect(x0, y, w, h); ctx.clip();
+    ctx.translate(x0, y + h / 2); ctx.scale(w * 0.75, h * 2.1);
+    const g = ctx.createRadialGradient(0, 0, 0, 0, 0, 1);
+    g.addColorStop(0, hexA(tier.color, 0.4)); g.addColorStop(0.75, hexA(tier.color, 0));
+    ctx.fillStyle = g; ctx.fillRect(-0.1, -2, 3, 4);
     ctx.restore();
+    // trait fin entre deux tiers
+    if (idx) { const hl = ctx.createLinearGradient(x0, 0, x0 + w * 0.7, 0); hl.addColorStop(0, 'rgba(255,255,255,.14)'); hl.addColorStop(1, 'rgba(255,255,255,0)'); ctx.fillStyle = hl; ctx.fillRect(x0 + BAR, y - 1, w - BAR, 1); }
+
+    // lettre : dégradé + lueur + ombre portée, comme sur la page
+    const long = tier.name.length > 3, size = long ? 34 : 70;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+    ctx.font = `800 ${size}px "Baloo 2", sans-serif`;
+    const cx = x0 + BAR + (LABEL - BAR) / 2, base = y + h / 2 + (tier.desc ? 8 : size * 0.3);
+    const tg = ctx.createLinearGradient(cx - 30, base - size, cx + 30, base);
+    tg.addColorStop(0, tier.color); tg.addColorStop(1, shade(tier.color, -0.2));
+    ctx.save(); ctx.shadowColor = 'rgba(0,0,0,.4)'; ctx.shadowOffsetY = 2; ctx.fillStyle = tg; ctx.fillText(tier.name.slice(0, 12), cx, base); ctx.restore();
+    ctx.save(); ctx.shadowColor = hexA(tier.color, 0.7); ctx.shadowBlur = 16; ctx.fillStyle = tg; ctx.fillText(tier.name.slice(0, 12), cx, base); ctx.restore();
+    if (tier.desc) { // légende sur une ou deux lignes
+      ctx.font = '600 14px Inter, sans-serif'; ctx.fillStyle = '#b9bdd0';
+      const words = tier.desc.split(' '); let line = '', ly = base + 24;
+      for (const wd of words) { const t = line ? line + ' ' + wd : wd; if (ctx.measureText(t).width > LABEL - 24 && line) { ctx.fillText(line, cx, ly); line = wd; ly += 17; } else line = t; }
+      ctx.fillText(line, cx, ly);
+    }
     keys.forEach((k, i) => {
-      const cx = x0 + LABEL + ROWPAD + (i % perRow) * (PW + GAP), cy = y + ROWPAD + Math.floor(i / perRow) * (PH + GAP);
-      drawPoster(ctx, imgs.get(k), list.items[k].t, cx, cy, PW, PH);
+      const px = x0 + LABEL + 6 + (i % perRow) * (PW + GAP), py = y + ROWPAD + Math.floor(i / perRow) * (PH + GAP);
+      drawPoster(ctx, imgs.get(k), list.items[k].t, px, py, PW, PH);
     });
-    rr(ctx, x0, y, w, h, 14); ctx.lineWidth = 2; ctx.strokeStyle = '#0f1117'; ctx.stroke();
-    y += h + 2;
-  }
+    y += h + 1;
+  });
 
-  // « Non classé » (facultatif)
-  if (pool.length) {
-    y += 14;
-    ctx.textAlign = 'left'; ctx.font = '800 22px "Baloo 2", sans-serif'; ctx.fillStyle = '#c9cde0'; ctx.fillText('Non classé', PAD, y + 12);
-    y += 22;
-    const rows = Math.ceil(pool.length / (perRow + 1)), h = rows * (PH + GAP) + 12;
-    ctx.save(); rr(ctx, PAD, y, W - PAD * 2, h, 14); ctx.fillStyle = '#b98a55'; ctx.fill(); ctx.restore();
-    pool.forEach((k, i) => drawPoster(ctx, imgs.get(k), list.items[k].t, PAD + 12 + (i % (perRow + 1)) * (PW + GAP), y + 10 + Math.floor(i / (perRow + 1)) * (PH + GAP), PW, PH));
-    y += h;
-  }
-
-  ctx.textAlign = 'center'; ctx.font = '600 14px Inter, sans-serif'; ctx.fillStyle = '#8f98b8';
-  ctx.fillText('Fait avec Ranku · darshanpatel-boop.github.io/Ranku', W / 2, H - 18);
+  // trait coloré continu sur le bord gauche : un seul dégradé qui traverse tous les tiers
+  const bar = ctx.createLinearGradient(0, y0, 0, y0 + boxH);
+  sections.forEach(({ tier }, i) => bar.addColorStop((i + 0.5) / sections.length, tier.color));
+  ctx.fillStyle = bar; ctx.fillRect(x0, y0, BAR, boxH);
+  ctx.restore();
+  rr(ctx, x0, y0, w, boxH, 16); ctx.lineWidth = 2; ctx.strokeStyle = '#12141b'; ctx.stroke();
   return cv;
 }
 
@@ -846,7 +848,7 @@ async function refreshShare() {
   $('#shState').textContent = 'Création de l’image…';
   $('#shState').hidden = false; img.hidden = true;
   ['shDl', 'shCopy', 'shShare'].forEach((id) => { $('#' + id).disabled = true; });
-  const cv = await buildShareImage(list, SH.pool);
+  const cv = await buildShareImage(list);
   const blob = await new Promise((r) => cv.toBlob(r, 'image/png'));
   if (my !== SH.busy) return; // une demande plus récente a pris le relais
   SH.blob = blob;
@@ -861,15 +863,12 @@ function openShare() {
   const file = new File([new Blob()], 'x.png', { type: 'image/png' });
   $('#shShare').hidden = !(navigator.canShare && navigator.canShare({ files: [file] }));
   $('#shCopy').hidden = !(window.ClipboardItem && navigator.clipboard?.write);
-  SH.pool = false;
-  $('#shPool').classList.remove('on');
   if (!$('#dlgShare').open) $('#dlgShare').showModal();
   refreshShare();
 }
 
 const shareName = () => 'ranku-' + (cur().name.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'tier-list') + '.png';
 
-$('#shPool').onclick = () => { SH.pool = !SH.pool; $('#shPool').classList.toggle('on', SH.pool); refreshShare(); };
 $('#shDl').onclick = () => {
   if (!SH.blob) return;
   const a = h('a', { href: URL.createObjectURL(SH.blob), download: shareName() });
