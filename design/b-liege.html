@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Proposition B</title>
+<link rel="stylesheet" href="base.css">
+<style>
+.row { display: flex; border-radius: 16px; overflow: hidden; margin-bottom: 12px; border: 2px solid var(--edge); box-shadow: 0 5px 0 rgba(0,0,0,.4); background: var(--bg2); }
+.row .lab { flex: 0 0 104px; display: flex; align-items: center; justify-content: center; font: 800 52px 'Baloo 2', sans-serif; }
+.row .cells { flex: 1; display: flex; flex-wrap: wrap; gap: 8px; padding: 10px; min-height: 146px; align-content: flex-start; }
+.cork { margin-top: 34px; border-radius: 16px; border: 3px solid #6b4a2b; box-shadow: 0 5px 0 rgba(0,0,0,.4), inset 0 0 40px rgba(60,35,10,.55); padding: 46px 28px 28px; position: relative;
+  background: #b98a55 radial-gradient(rgba(90,55,20,.35) 1.2px, transparent 1.4px) 0 0 / 9px 9px; display: flex; flex-wrap: wrap; gap: 26px; }
+.note { position: absolute; top: -18px; left: 24px; background: #ffe680; color: #3a2a00; font: 700 18px 'Baloo 2', sans-serif; padding: 6px 18px 8px; transform: rotate(-3deg); box-shadow: 0 4px 8px rgba(0,0,0,.35); border-radius: 3px; }
+.pol { background: #fff; padding: 6px 6px 16px; border-radius: 3px; box-shadow: 0 6px 10px rgba(0,0,0,.4); position: relative; }
+.pol .poster { border: 0; box-shadow: none; border-radius: 2px; }
+.pol::before { content: ''; position: absolute; top: -8px; left: 50%; width: 14px; height: 14px; margin-left: -7px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #ff8a8a, #d11); box-shadow: 0 3px 3px rgba(0,0,0,.45); }
+.pol:nth-child(odd) { transform: rotate(-3deg); } .pol:nth-child(even) { transform: rotate(2.5deg); } .pol:nth-child(3n) { transform: rotate(-1deg); }
+</style></head><body>
+<script src="mock.js"></script><script src="common.js"></script>
+<div class="wrap">
+  <h1>Mes animés préférés</h1><div class="sub">17 animés · 5 tiers</div>
+  <div id="rows"></div>
+  <div class="cork" id="pool"><div class="note">Non classé</div></div>
+  <span class="btn">+ Ajouter des animés</span>
+</div>
+<script>
+document.getElementById('rows').innerHTML = rowsHtml((t) => `<div class="row"><div class="lab" style="background:linear-gradient(135deg,${t.c1},${t.c2});color:${t.ink}">${t.n}</div><div class="cells">${t.items.map((i) => poster(i)).join('')}</div></div>`);
+document.getElementById('pool').insertAdjacentHTML('beforeend', POOL.map((i) => `<div class="pol">${poster(i)}</div>`).join(''));
+</script></body></html>

@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Proposition F</title>
+<link rel="stylesheet" href="base.css"><link rel="stylesheet" href="cork.css">
+<style>
+/* F : badge arrondi coloré, teinte légère de haut en bas et liseré en dégradé en bas de la ligne */
+.row { background: linear-gradient(180deg, color-mix(in srgb, var(--c1) 16%, #1c1f27), #1c1f27 70%); align-items: stretch; }
+.row::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 4px; background: linear-gradient(90deg, var(--c1), var(--c2) 50%, transparent); }
+.row .lab-wrap { flex: 0 0 96px; display: flex; align-items: center; justify-content: center; }
+.row .lab { width: 68px; height: 68px; border-radius: 18px; display: flex; align-items: center; justify-content: center; font: 800 40px 'Baloo 2', sans-serif; background: linear-gradient(135deg, var(--c1), var(--c2)); color: var(--ink); box-shadow: 0 4px 0 rgba(0,0,0,.4), inset 0 0 0 2px rgba(255,255,255,.25); }
+</style></head><body>
+<script src="mock.js"></script><script src="common.js"></script>
+<div class="wrap">
+  <h1>Mes animés préférés</h1><div class="sub">17 animés · 5 tiers</div>
+  <div id="rows"></div>
+  <div class="cork" id="pool"><div class="note">Non classé</div></div>
+  <span class="btn">+ Ajouter des animés</span>
+</div>
+<script>
+document.getElementById('rows').innerHTML = rowsHtml((t) => `<div class="row" style="--c1:${t.c1};--c2:${t.c2};--ink:${t.ink}"><div class="lab-wrap"><div class="lab">${t.n}</div></div><div class="cells">${t.items.map((i) => poster(i)).join('')}</div></div>`);
+document.getElementById('pool').insertAdjacentHTML('beforeend', POOL.map((i) => `<div class="pol">${poster(i)}</div>`).join(''));
+</script></body></html>

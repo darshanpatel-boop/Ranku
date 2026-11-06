@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Proposition D</title>
+<link rel="stylesheet" href="base.css"><link rel="stylesheet" href="cork.css">
+<style>
+/* D : bloc coloré à gauche + la couleur s'étale doucement vers la droite */
+.row { background: linear-gradient(90deg, color-mix(in srgb, var(--c1) 34%, #1c1f27) 0%, #1c1f27 65%); }
+.row .lab { flex: 0 0 100px; display: flex; align-items: center; justify-content: center; font: 800 52px 'Baloo 2', sans-serif; background: linear-gradient(135deg, var(--c1), var(--c2)); color: var(--ink); text-shadow: 0 2px 0 rgba(0,0,0,.15); }
+</style></head><body>
+<script src="mock.js"></script><script src="common.js"></script>
+<div class="wrap">
+  <h1>Mes animés préférés</h1><div class="sub">17 animés · 5 tiers</div>
+  <div id="rows"></div>
+  <div class="cork" id="pool"><div class="note">Non classé</div></div>
+  <span class="btn">+ Ajouter des animés</span>
+</div>
+<script>
+document.getElementById('rows').innerHTML = rowsHtml((t) => `<div class="row" style="--c1:${t.c1};--c2:${t.c2};--ink:${t.ink}"><div class="lab">${t.n}</div><div class="cells">${t.items.map((i) => poster(i)).join('')}</div></div>`);
+document.getElementById('pool').insertAdjacentHTML('beforeend', POOL.map((i) => `<div class="pol">${poster(i)}</div>`).join(''));
+</script></body></html>

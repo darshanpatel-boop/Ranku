@@ -1,0 +1,19 @@
+@import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Inter:wght@400;600;700&display=swap');
+:root { --bg:#23262f; --bg2:#2d313d; --edge:#12141b; --text:#f3f4f8; --muted:#9aa0b4; --yellow:#ffd24d; }
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.45 'Inter', system-ui, sans-serif; }
+.nav { background: #1c1f27; border-bottom: 1px solid #12141b; position: sticky; top: 0; z-index: 5; }
+.nav .in { max-width: 1060px; margin: 0 auto; padding: 8px 16px; display: flex; align-items: center; gap: 22px; }
+.logo { font: 800 30px/1 'Baloo 2', sans-serif; letter-spacing: .01em; }
+.logo span { color: #ff6b57; } .logo b { color: var(--yellow); }
+.tabs { display: flex; gap: 6px; }
+.tabs a { padding: 6px 12px; border-radius: 9px; font-size: 14px; color: #c9cde0; cursor: pointer; }
+.tabs a.on { background: var(--yellow); color: #2a1a00; font-weight: 700; box-shadow: 0 0 0 2px #f59e0b inset; }
+.back { margin-left: auto; font-size: 13px; color: var(--muted); text-decoration: none; }
+.wrap { max-width: 1060px; margin: 0 auto; padding: 26px 16px 70px; }
+h1 { margin: 0; font: 700 38px/1.1 'Baloo 2', sans-serif; }
+.sub { color: var(--muted); margin: 4px 0 22px; }
+.poster { width: 86px; height: 122px; object-fit: cover; border-radius: 8px; border: 2px solid #0e1016; box-shadow: 0 3px 0 rgba(0,0,0,.45); background: #3a3f50; display: block; }
+.dot { display: flex; align-items: center; gap: 10px; font: 700 18px 'Baloo 2', sans-serif; margin: 28px 0 10px; }
+.dot i { width: 14px; height: 14px; border-radius: 50%; background: var(--yellow); }
+.btn { display: inline-block; margin-top: 18px; background: #ffd24d; color: #2a1a00; font-weight: 700; padding: 11px 18px; border-radius: 12px; box-shadow: 0 4px 0 #c98a00; }

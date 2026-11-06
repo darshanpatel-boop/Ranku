@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Proposition E</title>
+<link rel="stylesheet" href="base.css"><link rel="stylesheet" href="cork.css">
+<style>
+/* E : pas de bloc, la lettre prend la couleur du tier, lueur douce à gauche et lettre en filigrane à droite */
+.row { background: radial-gradient(ellipse 60% 140% at 0% 50%, color-mix(in srgb, var(--c1) 38%, transparent), transparent 70%), #1c1f27; }
+.row::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 6px; background: linear-gradient(180deg, var(--c1), var(--c2)); }
+.row::after { content: attr(data-n); position: absolute; right: 10px; bottom: -40px; font: 800 170px/1 'Baloo 2', sans-serif; color: var(--c1); opacity: .09; pointer-events: none; }
+.row .lab { flex: 0 0 96px; display: flex; align-items: center; justify-content: center; font: 800 58px 'Baloo 2', sans-serif; background: linear-gradient(135deg, var(--c1), var(--c2)); -webkit-background-clip: text; background-clip: text; color: transparent; padding-left: 6px; filter: drop-shadow(0 2px 0 rgba(0,0,0,.35)); }
+</style></head><body>
+<script src="mock.js"></script><script src="common.js"></script>
+<div class="wrap">
+  <h1>Mes animés préférés</h1><div class="sub">17 animés · 5 tiers</div>
+  <div id="rows"></div>
+  <div class="cork" id="pool"><div class="note">Non classé</div></div>
+  <span class="btn">+ Ajouter des animés</span>
+</div>
+<script>
+document.getElementById('rows').innerHTML = rowsHtml((t) => `<div class="row" data-n="${t.n}" style="--c1:${t.c1};--c2:${t.c2}"><div class="lab">${t.n}</div><div class="cells">${t.items.map((i) => poster(i)).join('')}</div></div>`);
+document.getElementById('pool').insertAdjacentHTML('beforeend', POOL.map((i) => `<div class="pol">${poster(i)}</div>`).join(''));
+</script></body></html>

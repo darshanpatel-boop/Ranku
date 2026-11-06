@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Proposition C</title>
+<link rel="stylesheet" href="base.css">
+<style>
+.card { position: relative; overflow: hidden; border-radius: 18px; margin-bottom: 14px; padding: 14px 16px 16px; border: 2px solid rgba(0,0,0,.35); box-shadow: 0 5px 0 rgba(0,0,0,.4), inset 0 0 0 2px rgba(255,255,255,.18); }
+.card .big { position: absolute; right: -6px; bottom: -34px; font: 800 190px/1 'Baloo 2', sans-serif; opacity: .18; pointer-events: none; }
+.card h2 { margin: 0 0 10px; font: 800 24px 'Baloo 2', sans-serif; display: flex; align-items: center; gap: 10px; }
+.card h2 small { font: 600 13px Inter, sans-serif; opacity: .7; }
+.card .cells { position: relative; display: flex; flex-wrap: wrap; gap: 8px; min-height: 122px; }
+.card .poster { border: 3px solid #fff; border-radius: 9px; box-shadow: 0 4px 0 rgba(0,0,0,.35); }
+.pool { border: 2px dashed #4a5064; border-radius: 18px; padding: 14px; display: flex; flex-wrap: wrap; gap: 8px; background: #262a35; }
+</style></head><body>
+<script src="mock.js"></script><script src="common.js"></script>
+<div class="wrap">
+  <h1>Mes animés préférés</h1><div class="sub">17 animés · 5 tiers</div>
+  <div id="rows"></div>
+  <div class="dot"><i></i>Non classé</div>
+  <div class="pool" id="pool"></div>
+  <span class="btn">+ Ajouter des animés</span>
+</div>
+<script>
+const NAMES = { S: 'Chef-d’œuvre', A: 'Excellent', B: 'Bien', C: 'Moyen', D: 'Bof' };
+document.getElementById('rows').innerHTML = rowsHtml((t) => `<div class="card" style="background:linear-gradient(135deg,${t.c1},${t.c2});color:${t.ink}"><div class="big">${t.n}</div><h2>${t.n} <small>${NAMES[t.n]} · ${t.items.length}</small></h2><div class="cells">${t.items.map((i) => poster(i)).join('')}</div></div>`);
+document.getElementById('pool').innerHTML = POOL.map((i) => poster(i)).join('');
+</script></body></html>
