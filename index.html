@@ -96,9 +96,15 @@
 
 <dialog id="dlgImport" class="modal">
   <div class="imp-in">
-    <h2>Importer depuis AniList</h2>
-    <p class="imp-note">Entre ton pseudo AniList : tes animés <b>terminés</b> arrivent dans « Non classé ». Ce qui est déjà dans ta liste ne bouge pas : seuls les <b>nouveaux</b> sont ajoutés, tu peux donc réimporter quand tu veux. Les saisons d’une même licence sont regroupées. Ton profil doit être public.</p>
-    <label class="fld">Pseudo AniList <input id="impUser" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Ex. Goku"></label>
+    <h2>Importer ma liste</h2>
+    <div class="imp-dest imp-srcrow" id="impSrc"></div>
+    <p class="imp-note" id="impNote">Entre ton pseudo AniList : tes animés <b>terminés</b> arrivent dans « Non classé ». Ce qui est déjà dans ta liste ne bouge pas : seuls les <b>nouveaux</b> sont ajoutés, tu peux donc réimporter quand tu veux. Les saisons d’une même licence sont regroupées. Ton profil doit être public.</p>
+    <label class="fld" id="impUserRow">Pseudo AniList <input id="impUser" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Ex. Goku"></label>
+    <div class="imp-file imp-hide" id="impFileRow">
+      <button class="ghost" id="impPick" type="button">Choisir le fichier d’export…</button>
+      <span id="impFileName">Aucun fichier choisi</span>
+      <input type="file" id="impFile" accept=".xml,.gz,application/xml,text/xml,application/gzip,application/x-gzip" hidden>
+    </div>
     <div class="imp-dest" id="impDest"></div>
     <div id="impState" class="imp-state" hidden></div>
     <div class="foot">
