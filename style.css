@@ -443,3 +443,11 @@ button.danger { background: #3a2328; color: #ff9a9a; border: 2px solid var(--lin
 
 /* la liste de la fiche épouse son contenu : les boutons remontent juste dessous */
 .fi-list { flex: 0 1 auto; min-height: 0; }
+
+/* boutons d'image : dans l'en-tête, à côté de la jaquette */
+.fi-t .fi-img { padding: 10px 0 0; }
+.fi-t .fi-img .sm { padding: 7px 11px; font-size: 13px; }
+.fi-link { padding-top: 4px; padding-bottom: 6px; }
+
+.fi-t .fi-img { gap: 6px; }
+.fi-t .fi-img .sm { padding: 6px 9px; font-size: 12.5px; }
