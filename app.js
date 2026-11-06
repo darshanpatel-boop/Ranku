@@ -105,7 +105,7 @@ function render() {
       h('div', { class: 'zone', dataset: { zone: t.id } }, t.items.filter((k) => list.items[k]).map((k) => card(list, k))))),
     h('button', { class: 'add-tier', type: 'button' }, '＋ Ajouter un tier')));
   board.append(
-    h('button', { class: 'add-anime', type: 'button' }, h('span', {}, '＋'), ' Ajouter des animés'),
+    h('button', { class: 'add-anime', type: 'button' }, svgEl('<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>'), h('span', { class: 'aa-t' }, 'Rechercher un animé à ajouter…'), h('kbd', {}, '/'), h('span', { class: 'aa-b' }, 'Ajouter')),
     h('div', { class: 'cork' },
       h('div', { class: 'note' }, 'Non classé'),
       h('div', { class: 'zone', dataset: { zone: 'pool' } }, list.pool.filter((k) => list.items[k]).map((k) => card(list, k)))));
@@ -423,21 +423,30 @@ function hlNodes(title, q) {
   return [title.slice(0, i), h('mark', {}, title.slice(i, i + qq.length)), title.slice(i + qq.length)];
 }
 
+const svgEl = (html) => { const t = document.createElement('template'); t.innerHTML = html.trim(); return t.content.firstChild; };
+const TRASH = '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></svg>';
+
+function srChip(added) {
+  return h('button', { class: 'sr-chip', type: 'button', 'aria-label': added ? 'Retirer de ma liste' : 'Ajouter à ma liste' },
+    added
+      ? [h('span', { class: 'st st1' }, h('i', { class: 'ic pt' }), 'Ajouté'),
+         h('span', { class: 'st st2' }, h('i', { class: 'ic tr' }, svgEl(TRASH)), 'Retirer')]
+      : [h('i', { class: 'ic' }, '+'), 'Ajouter']);
+}
+
 function srItem(it, q) {
   const added = !!cur().items[it.key];
-  const chip = added
-    ? [h('i', { class: 'ic pt' }), h('span', { class: 't1' }, 'Ajouté'), h('span', { class: 't2' }, 'Retirer')]
-    : [h('i', { class: 'ic' }, '+'), h('span', {}, 'Ajouter')];
-  return h('button', { class: 'sr-it' + (added ? ' added' : ''), dataset: { k: it.key }, type: 'button' },
-    h('span', { class: 'sr-pic' }, h('img', { src: imgUrl(it.img), alt: '', loading: 'lazy' }), h('span', { class: 'sr-ov' }, h('span', { class: 'sr-chip' }, chip))),
+  return h('div', { class: 'sr-it' + (added ? ' added' : ''), dataset: { k: it.key } },
+    h('div', { class: 'sr-pic' }, h('img', { src: imgUrl(it.img), alt: '', loading: 'lazy' }), h('div', { class: 'sr-ov' }, srChip(added))),
     h('b', {}, hlNodes(it.title, q)),
     h('span', { class: 'sr-meta' }, it.sub));
 }
 
-function renderSearch() {
+function renderSearch(animate) {
   const dlg = $('#dlgSearch'), grid = $('#results');
   const qv = $('#q').value, q = qv.trim(), list = cur();
   const top = grid.scrollTop;
+  grid.classList.toggle('fresh', !!animate);
   dlg.classList.toggle('has-q', !!qv);
   const all = [...S.items, ...S.ani];
   S.byKey = new Map(all.map((it) => [it.key, it]));
@@ -447,7 +456,7 @@ function renderSearch() {
       n, q.length >= 2 ? h('small', {}, String(all.filter((it) => inPill(it, k)).length)) : null)),
     h('span', { class: 'sw-tog' + (S.hide ? ' on' : ''), id: 'srTog' }, h('i'), 'Masquer ceux déjà ajoutés'));
 
-  const visible = (arr) => arr.filter((it) => inPill(it, S.type) && !(S.hide && list.items[it.key] && !S.session.has(it.key)));
+  const visible = (arr) => arr.filter((it) => inPill(it, S.type) && !(S.hide && list.items[it.key]));
   const loc = visible(S.items), ani = visible(S.ani);
   const aniLabel = { '': 'Pas trouvé ? Chercher aussi sur AniList', loading: 'Recherche sur AniList…', done: S.ani.length ? `AniList : ${S.ani.length} résultat${S.ani.length > 1 ? 's' : ''} en plus` : 'Rien de plus sur AniList', error: 'AniList indisponible — réessayer' }[S.aniState];
 
@@ -478,14 +487,14 @@ function renderSearch() {
 async function doSearch() {
   const q = $('#q').value.trim();
   S.ani = []; S.aniState = '';
-  if (q.length < 2) { S.items = []; renderSearch(); return; }
+  if (q.length < 2) { S.items = []; renderSearch(true); return; }
   if (!animeData) {
     try { await loadData(); } catch { $('#results').replaceChildren(h('div', { class: 'sw-hint' }, h('p', {}, 'Base indisponible. Réessaie avec internet.'))); return; }
   }
   const rows = searchLocal(q);
   S.items = rows.map(itemFromRow);
   S.ids = new Set(rows.flatMap((r) => [r[4] && 'a' + r[4], r[5] && 'm' + r[5]]).filter(Boolean));
-  renderSearch();
+  renderSearch(true);
 }
 
 async function fetchAni() {
@@ -516,23 +525,39 @@ function showUndo(it) {
   toastSearchTimer = setTimeout(() => t.classList.remove('show'), 3000);
 }
 
+function updateMeta() {
+  const n = $('#results').querySelectorAll('.sr-it:not(.leaving)').length;
+  if ($('#q').value.trim().length >= 2) {
+    if (!n) { renderSearch(); return; }
+    $('#srCnt').textContent = `${n} résultat${n > 1 ? 's' : ''}`;
+  }
+  $('#srCount').textContent = S.session.size ? `${S.session.size} ajouté${S.session.size > 1 ? 's' : ''}` : '';
+}
+
 function toggleItem(it) {
-  if (cur().items[it.key]) { removeKey(it.key); renderSearch(); return; }
-  addItem(it.key, it.title, it.img);
-  S.session.add(it.key);
-  renderSearch();
-  $(`.sr-it[data-k="${CSS.escape(it.key)}"]`)?.classList.add('just'); // pas de « Retirer » tant que la souris reste dessus
-  showUndo(it);
+  const el = $(`.sr-it[data-k="${CSS.escape(it.key)}"]`);
+  if (cur().items[it.key]) removeKey(it.key);
+  else { addItem(it.key, it.title, it.img); S.session.add(it.key); showUndo(it); }
+  if (el) {
+    const added = !!cur().items[it.key];
+    el.classList.toggle('added', added);
+    el.querySelector('.sr-ov').replaceChildren(srChip(added));
+    if (added) el.querySelector('.sr-chip').classList.add('just'); // pas de « Retirer » tant que la souris reste sur le bouton
+    if (added && S.hide) { el.classList.add('leaving'); setTimeout(() => { el.remove(); updateMeta(); }, 260); }
+  }
+  updateMeta();
 }
 
 $('#results').addEventListener('click', (e) => {
   if (e.target.closest('#srAni2')) { fetchAni(); return; }
-  const b = e.target.closest('.sr-it');
-  if (b && S.byKey.has(b.dataset.k)) toggleItem(S.byKey.get(b.dataset.k));
+  const chip = e.target.closest('.sr-chip');
+  if (!chip) return;
+  const it = S.byKey.get(chip.closest('.sr-it').dataset.k);
+  if (it) toggleItem(it);
 });
 $('#results').addEventListener('mouseout', (e) => {
-  const b = e.target.closest('.sr-it');
-  if (b && !b.contains(e.relatedTarget)) b.classList.remove('just');
+  const c = e.target.closest('.sr-chip');
+  if (c && !c.contains(e.relatedTarget)) c.classList.remove('just');
 });
 $('#srTools').addEventListener('click', (e) => {
   const p = e.target.closest('[data-ty]');
