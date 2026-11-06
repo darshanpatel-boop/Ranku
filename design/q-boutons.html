@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Boutons d'ajout</title>
+<link rel="stylesheet" href="base.css">
+<style>
+body { overflow: auto; }
+.wrap { max-width: 1060px; margin: 0 auto; padding: 24px 16px 60px; }
+h1 { margin: 0 0 4px; }
+.sub { color: #9aa0b4; margin-bottom: 26px; }
+.set { margin: 0 0 34px; padding: 18px 18px 8px; border-radius: 18px; background: #2a2e3b; border: 2px solid #0f1117; box-shadow: 0 4px 0 #0f1117; }
+.set h2 { margin: 0; font: 800 22px 'Baloo 2', sans-serif; }
+.set p { margin: 2px 0 16px; color: #9aa0b4; font-size: 13px; }
+.row { display: grid; grid-template-columns: repeat(4, minmax(0, 150px)); gap: 26px 22px; padding-bottom: 14px; }
+.lab { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(4, minmax(0, 150px)); gap: 22px; margin: -6px 0 -14px; color: #707a9c; font: 700 11px Inter; text-transform: uppercase; letter-spacing: .08em; }
+.cd { min-width: 0; }
+.pic { position: relative; display: block; }
+.pic img { width: 100%; aspect-ratio: 2/3; object-fit: cover; display: block; border-radius: 13px; border: 2px solid #0f1117; box-shadow: 0 4px 0 #0f1117; }
+.cd b { display: block; margin-top: 9px; font: 600 13px/1.25 Inter; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ov { position: absolute; }
+.bt { display: flex; align-items: center; justify-content: center; gap: 7px; cursor: pointer; font-family: Inter, sans-serif; border: 0; color: #fff; transition: background .15s, color .15s, translate .1s, box-shadow .1s, filter .15s; }
+.bt svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+.bt .st2 { display: none; }
+.cd.added .pic img { filter: brightness(.8); }
+.cd.added .bt:hover .st1, .cd.demo .bt .st1 { display: none; }
+.cd.added .bt:hover .st2, .cd.demo .bt .st2 { display: inline-flex; align-items: center; gap: 7px; }
+.cd:not(.added) .st2 { display: none !important; }
+.bt .st1 { display: inline-flex; align-items: center; gap: 7px; }
+
+/* 1 — Touche épaisse, comme le reste du site */
+.d1 .ov { left: 8px; right: 8px; bottom: 10px; }
+.d1 .bt { width: 100%; padding: 9px 0; border-radius: 12px; border: 2px solid #0f1117; box-shadow: 0 3px 0 #0f1117, inset 0 2px 0 rgba(255,255,255,.25); background: #4f8cff; font-weight: 800; font-size: 13px; }
+.d1 .bt:active { translate: 0 2px; box-shadow: 0 1px 0 #0f1117; }
+.d1.added .bt { background: #4ade9f; color: #04281c; }
+.d1.added .bt:hover, .d1.demo .bt { background: #ef4444; color: #fff; }
+
+/* 2 — Pastille ronde en bas à droite, icône seule */
+.d2 .ov { right: 8px; bottom: 10px; }
+.d2 .bt { width: 40px; height: 40px; border-radius: 50%; border: 2px solid #0f1117; box-shadow: 0 3px 0 #0f1117, inset 0 2px 0 rgba(255,255,255,.25); background: #4f8cff; }
+.d2 .bt .tx { display: none; }
+.d2 .bt svg { width: 20px; height: 20px; }
+.d2.added .bt { background: #4ade9f; color: #04281c; }
+.d2.added .bt:hover, .d2.demo .bt { background: #ef4444; color: #fff; }
+.d2 .bt:hover { scale: 1.08; }
+
+/* 3 — Bandeau collé en bas de l'affiche */
+.d3 .ov { left: 0; right: 0; bottom: 0; }
+.d3 .bt { width: 100%; padding: 12px 0; border-radius: 0 0 11px 11px; background: rgba(15,17,23,.88); border-top: 2px solid #0f1117; font-weight: 800; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; }
+.d3 .bt:hover { background: #4f8cff; }
+.d3.added .bt { background: #4ade9f; color: #04281c; }
+.d3.added .bt:hover, .d3.demo .bt { background: #ef4444; color: #fff; }
+
+/* 4 — Bouton sous l'affiche, l'affiche reste propre */
+.d4 .ov { position: static; margin-top: 12px; }
+.d4 .bt { width: 100%; padding: 8px 0; border-radius: 11px; background: #343949; border: 2px solid #0f1117; box-shadow: 0 3px 0 #0f1117; font-weight: 800; font-size: 13px; color: #dfe4f7; }
+.d4 .bt:hover { background: #4f8cff; color: #fff; }
+.d4.added .bt { background: #26405a; color: #8fe6bf; }
+.d4.added .bt:hover, .d4.demo .bt { background: #ef4444; color: #fff; }
+.d4 .bt:active { translate: 0 2px; box-shadow: 0 1px 0 #0f1117; }
+
+/* 5 — Étiquette autocollante penchée (comme l'onglet actif) */
+.d5 .ov { left: 6px; bottom: 12px; }
+.d5 .bt { padding: 6px 12px; border-radius: 9px; border: 2px solid #0f1117; box-shadow: 0 3px 0 #0f1117, inset 0 2px 0 rgba(255,255,255,.5); background: linear-gradient(180deg, #ffe27a, #f7b32b); color: #2a1a00; font-weight: 800; font-size: 11px; letter-spacing: .05em; text-transform: uppercase; rotate: -4deg; }
+.d5 .bt:hover { rotate: -1deg; scale: 1.06; }
+.d5.added .bt { background: linear-gradient(180deg, #8ff0c4, #2fc98a); color: #04281c; rotate: 3deg; }
+.d5.added .bt:hover, .d5.demo .bt { background: linear-gradient(180deg, #ff8a8a, #e5484d); color: #fff; rotate: -2deg; }
+</style></head><body>
+<script src="mock.js"></script>
+<div class="wrap">
+  <h1>Boutons d'ajout d'animés</h1>
+  <div class="sub">Cinq styles pour remplacer le bouton en verre. Chaque ligne montre : normal, ajouté, « Retirer » (au survol) et un autre normal. Tout est cliquable : clique sur « Ajouter » pour passer à « Ajouté », puis survole-le.</div>
+  <div id="sets"></div>
+</div>
+<script>
+const ICO = {
+  plus: '<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>',
+  check: '<svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
+  trash: '<svg viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></svg>',
+};
+const DESIGNS = [
+  ['d1', '1 · Touche épaisse', 'Même style que les touches du site : contour sombre, relief, couleur pleine. Bleu → vert → rouge.'],
+  ['d2', '2 · Pastille ronde', 'Un rond dans le coin de l’affiche, icône seule : + → coche → poubelle. Très discret.'],
+  ['d3', '3 · Bandeau en bas', 'Un bandeau collé en bas de l’affiche, texte en majuscules, qui change de couleur.'],
+  ['d4', '4 · Sous l’affiche', 'Le bouton est sous la jaquette : l’affiche reste propre, bouton large et facile à toucher.'],
+  ['d5', '5 · Autocollant penché', 'Une étiquette jaune légèrement penchée, comme l’onglet actif : verte une fois ajouté, rouge au retrait.'],
+];
+const html = (cls, i, state) => {
+  const m = MOCK[i];
+  const bt = (state === 'added' || state === 'demo')
+    ? `<button class="bt"><span class="st1">${ICO.check}<span class="tx">Ajouté</span></span><span class="st2">${ICO.trash}<span class="tx">Retirer</span></span></button>`
+    : `<button class="bt"><span class="st1">${ICO.plus}<span class="tx">Ajouter</span></span></button>`;
+  return `<div class="cd ${cls}${state === 'added' ? ' added' : ''}${state === 'demo' ? ' added demo' : ''}"><div class="pic"><img src="${m.i}" alt=""><div class="ov">${state === 'demo' ? bt.replace('<button', '<button') : bt}</div></div><b>${m.t}</b></div>`;
+};
+document.getElementById('sets').innerHTML = DESIGNS.map(([cls, t, p]) => `
+  <section class="set"><h2>${t}</h2><p>${p}</p>
+  <div class="lab"><span>Ajouter</span><span>Ajouté</span><span>Retirer (survol)</span><span>Ajouter</span></div>
+  <div class="row">${html(cls, 0, 'add')}${html(cls, 1, 'added')}${html(cls, 2, 'demo')}${html(cls, 3, 'add')}</div></section>`).join('');
+document.getElementById('sets').addEventListener('click', (e) => {
+  const bt = e.target.closest('.bt'); if (!bt) return;
+  const cd = bt.closest('.cd'), cls = [...cd.classList].find((c) => /^d\d$/.test(c));
+  const i = [...document.querySelectorAll(`.${cls}`)].indexOf(cd);
+  if (cd.classList.contains('added')) { cd.classList.remove('added', 'demo'); bt.outerHTML = `<button class="bt"><span class="st1">${ICO.plus}<span class="tx">Ajouter</span></span></button>`; }
+  else { cd.classList.add('added'); bt.outerHTML = `<button class="bt"><span class="st1">${ICO.check}<span class="tx">Ajouté</span></span><span class="st2">${ICO.trash}<span class="tx">Retirer</span></span></button>`; }
+});
+</script></body></html>
