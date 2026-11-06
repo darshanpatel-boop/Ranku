@@ -12,6 +12,16 @@ function mount(opt) {
     <div class="toast" id="toast"></div>
   </div></div>`);
   document.getElementById('ic').innerHTML = ICON;
+  if (opt.states) {
+    const S = [['grad', 'Dégradé'], ['mint', 'Menthe'], ['ghost', 'Contour'], ['white', 'Blanc'], ['coral', 'Corail']];
+    document.querySelector('.veil').insertAdjacentHTML('afterbegin', '<div class="sw"><span>Style de « Ajouté » :</span>' + S.map(([k, n], i) => '<button class="pill' + (i ? '' : ' on') + '" data-s="' + k + '">' + n + '</button>').join('') + '</div>');
+    $('win').classList.add('s-grad');
+    document.querySelector('.sw').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-s]'); if (!b) return;
+      document.querySelectorAll('.sw .pill').forEach((p) => p.classList.toggle('on', p === b));
+      $('win').className = $('win').className.replace(/ s-w+/, '') + ' s-' + b.dataset.s;
+    });
+  }
   const $ = (id) => document.getElementById(id);
   const added = new Set([2, 6]);
   let kf = 0, hideAdded = false, type = 'Tous', timer, undo = null;
@@ -25,7 +35,7 @@ function mount(opt) {
   function overlay(m) {
     const a = added.has(m.n);
     if (mode === 'veil') return `<span class="ov"><span class="plus">${a ? '✓' : '+'}</span></span>`;
-    if (mode === 'bar') return `<span class="ov"><span class="abar">${a ? '✓ Ajouté' : '＋ Ajouter'}</span></span>`;
+    if (mode === 'bar') return `<span class="ov"><span class="abar">${a ? '<span class="t1">Ajouté</span><span class="t2">Retirer</span>' : '＋ Ajouter'}</span></span>`;
     return '';
   }
   function draw(skeleton) {
